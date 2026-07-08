@@ -1,0 +1,367 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Activite;
+use App\Models\Notification;
+use Illuminate\Http\Request;
+
+class BaseActiviteController extends Controller
+{
+    // Vue de base — surchargée d
+    protected string $viewPrefix = 'activites';
+
+    public function index(Request $request)
+    {
+        $userId = auth()->id();
+
+        $query = Activite::with(['acces', 'user'])
+            ->where(function($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->orWhereHas('acces', function($q2) {
+                      $q2->where('droitacces', 'public');
+                  });
+            });
+ 
+        if ($request->filled('search')) {
+            $query->where('titre', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('date_debut')) {
+            $query->whereDate('date', '>=', $request->date_debut);
+        }
+
+        if ($request->filled('date_fin')) {
+            $query->whereDate('date', '<=', $request->date_fin);
+        }
+
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        $activites = $query->latest('date')->paginate(10)->withQueryString();
+
+        $stats = [
+            'total'      => Activite::where('user_id', $userId)->orwhereHas('acces', function($q) {
+                $q->where('droitacces', 'public');
+            })->count(),
+            'en_attente' => Activite::where('user_id', $userId)->where('statut', 'en_attente')->orwhereHas('acces', function($q) {
+                $q->where('droitacces', 'public')->where('statut', 'en_attente');
+            })->count(),
+            'valide'     => Activite::where('user_id', $userId)->where('statut', 'valide')->orwhereHas('acces', function($q) {
+                $q->where('droitacces', 'public')->where('statut', 'valide');
+            })->count(),
+            'rate'       => Activite::where('user_id', $userId)->where('statut', 'rate')->orwhereHas('acces', function($q) {
+                $q->where('droitacces', 'public')->where('statut', 'rate');
+            })->count(),
+        ];
+
+        return view($this->viewPrefix . '.index', compact('activites', 'stats'));
+    }
+
+    public function create()
+    {
+        return view($this->viewPrefix . '.create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'titre'                       => ['required', 'string', 'max:255'],
+            'description'                 => ['required', 'string'],
+            'date'                        => ['required', 'date'],
+            'lieu'                        => ['required', 'string', 'max:255'],
+            'droitacces'                  => ['required', 'in:prive,public,restreint'],
+            'rappels_avant_valeur'        => ['nullable', 'array'],
+            'rappels_avant_valeur.*'      => ['integer', 'min:1'],
+            'rappels_avant_unite'         => ['nullable', 'array'],
+            'rappels_avant_unite.*'       => ['in:secondes,minutes,heures,jours'],
+            'alertes_apres_valeur'        => ['nullable', 'array'],
+            'alertes_apres_valeur.*'      => ['integer', 'min:1'],
+            'alertes_apres_unite'         => ['nullable', 'array'],
+            'alertes_apres_unite.*'       => ['in:secondes,minutes,heures,jours'],
+            'alertes_intervalle_valeur'   => ['nullable', 'array'],
+            'alertes_intervalle_valeur.*' => ['integer', 'min:1'],
+            'alertes_intervalle_unite'    => ['nullable', 'array'],
+            'alertes_intervalle_unite.*'  => ['in:secondes,minutes,heures,jours'],
+        ]);
+
+        $rappelsAvant = [];
+        foreach ($request->rappels_avant_valeur ?? [] as $i => $valeur) {
+            $rappelsAvant[] = [
+                'valeur' => (int) $valeur,
+                'unite'  => $request->rappels_avant_unite[$i] ?? 'heures',
+            ];
+        }
+
+        $alertesApres = [];
+        foreach ($request->alertes_apres_valeur ?? [] as $i => $valeur) {
+            $alertesApres[] = [
+                'valeur'            => (int) $valeur,
+                'unite'             => $request->alertes_apres_unite[$i] ?? 'heures',
+                'intervalle_valeur' => (int) ($request->alertes_intervalle_valeur[$i] ?? 1),
+                'intervalle_unite'  => $request->alertes_intervalle_unite[$i] ?? 'heures',
+            ];
+        }
+
+        $activite = Activite::create([
+            'user_id'        => auth()->id(),
+            'titre'          => $request->titre,
+            'description'    => $request->description,
+            'date'           => $request->date,
+            'lieu'           => $request->lieu,
+            'statut'         => 'en_attente',
+            'rappels_avant'  => $rappelsAvant,
+            'alertes_apres'  => $alertesApres,
+        ]);
+
+        $activite->acces()->create(['droitacces' => $request->droitacces]);
+
+        $dateEvenement = \Carbon\Carbon::parse($request->date);
+
+        foreach ($rappelsAvant as $r) {
+            $activite->notifications()->create([
+                'type'              => 'rappel',
+                'dateenvoi'         => $this->calculerDate($dateEvenement, $r['valeur'], $r['unite'], 'avant'),
+                'envoye'            => false,
+                'repetition_active' => false,
+            ]);
+        }
+
+        foreach ($alertesApres as $a) {
+            $activite->notifications()->create([
+                'type'               => 'alerte',
+                'dateenvoi'          => $this->calculerDate($dateEvenement, $a['valeur'], $a['unite'], 'apres'),
+                'envoye'             => false,
+                'intervalle_valeur'  => $a['intervalle_valeur'],
+                'intervalle_unite'   => $a['intervalle_unite'],
+                'repetition_active'  => true,
+            ]);
+        }
+
+        return redirect()->route($this->routePrefix() . '.index')
+                         ->with('success', 'Activité créée avec succès.');
+    }
+
+    public function edit(Activite $activite)
+    {
+        abort_if($activite->user_id !== auth()->id(), 403);
+        return view($this->viewPrefix . '.edit', compact('activite'));
+    }
+
+    public function update(Request $request, Activite $activite)
+    {
+        abort_if($activite->user_id !== auth()->id(), 403);
+
+        $request->validate([
+            'titre'                       => ['required', 'string', 'max:255'],
+            'description'                 => ['required', 'string'],
+            'date'                        => ['required', 'date'],
+            'lieu'                        => ['required', 'string', 'max:255'],
+            'droitacces'                  => ['required', 'in:prive,public,restreint'],
+            'rappels_avant_valeur'        => ['nullable', 'array'],
+            'rappels_avant_valeur.*'      => ['integer', 'min:1'],
+            'rappels_avant_unite'         => ['nullable', 'array'],
+            'rappels_avant_unite.*'       => ['in:secondes,minutes,heures,jours'],
+            'alertes_apres_valeur'        => ['nullable', 'array'],
+            'alertes_apres_valeur.*'      => ['integer', 'min:1'],
+            'alertes_apres_unite'         => ['nullable', 'array'],
+            'alertes_apres_unite.*'       => ['in:secondes,minutes,heures,jours'],
+            'alertes_intervalle_valeur'   => ['nullable', 'array'],
+            'alertes_intervalle_valeur.*' => ['integer', 'min:1'],
+            'alertes_intervalle_unite'    => ['nullable', 'array'],
+            'alertes_intervalle_unite.*'  => ['in:secondes,minutes,heures,jours'],
+        ]);
+
+        $rappelsAvant = [];
+        foreach ($request->rappels_avant_valeur ?? [] as $i => $valeur) {
+            $rappelsAvant[] = [
+                'valeur' => (int) $valeur,
+                'unite'  => $request->rappels_avant_unite[$i] ?? 'heures',
+            ];
+        }
+
+        $alertesApres = [];
+        foreach ($request->alertes_apres_valeur ?? [] as $i => $valeur) {
+            $alertesApres[] = [
+                'valeur'            => (int) $valeur,
+                'unite'             => $request->alertes_apres_unite[$i] ?? 'heures',
+                'intervalle_valeur' => (int) ($request->alertes_intervalle_valeur[$i] ?? 1),
+                'intervalle_unite'  => $request->alertes_intervalle_unite[$i] ?? 'heures',
+            ];
+        }
+
+        $activite->update([
+            'titre'          => $request->titre,
+            'description'    => $request->description,
+            'date'           => $request->date,
+            'lieu'           => $request->lieu,
+            'rappels_avant'  => $rappelsAvant,
+            'alertes_apres'  => $alertesApres,
+        ]);
+
+        $activite->acces()->updateOrCreate(
+            ['activite_id' => $activite->id],
+            ['droitacces'  => $request->droitacces]
+        );
+
+        $activite->notifications()->where('envoye', false)->delete();
+
+        $dateEvenement = \Carbon\Carbon::parse($request->date);
+
+        foreach ($rappelsAvant as $r) {
+            $activite->notifications()->create([
+                'type'              => 'rappel',
+                'dateenvoi'         => $this->calculerDate($dateEvenement, $r['valeur'], $r['unite'], 'avant'),
+                'envoye'            => false,
+                'repetition_active' => false,
+            ]);
+        }
+
+        foreach ($alertesApres as $a) {
+            $activite->notifications()->create([
+                'type'               => 'alerte',
+                'dateenvoi'          => $this->calculerDate($dateEvenement, $a['valeur'], $a['unite'], 'apres'),
+                'envoye'             => false,
+                'intervalle_valeur'  => $a['intervalle_valeur'],
+                'intervalle_unite'   => $a['intervalle_unite'],
+                'repetition_active'  => true,
+            ]);
+        }
+
+        return redirect()->route($this->routePrefix() . '.index')
+                         ->with('success', 'Activité mise à jour.');
+    }
+
+    public function destroy(Activite $activite)
+    {
+        abort_if($activite->user_id !== auth()->id(), 403);
+        $activite->delete();
+        return back()->with('success', 'Activité supprimée.');
+    }
+
+    public function valider(Activite $activite)
+    {
+        abort_if($activite->user_id !== auth()->id(), 403);
+
+        $activite->update(['statut' => 'valide']);
+
+        $activite->notifications()
+                 ->where('type', 'alerte')
+                 ->where('envoye', false)
+                 ->update(['envoye' => true, 'repetition_active' => false]);
+
+        return back()->with('success', 'Activité marquée comme faite.');
+    }
+
+    public function notifications(Request $request)
+    {
+        $userId = auth()->id();
+
+        $query = Notification::with(['activite.user', 'activite.acces'])
+            ->where('envoye', true)
+            ->whereHas('activite', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                ->orWhereHas('acces', function($q2) {
+                    $q2->where('droitacces', 'public');
+                });
+            });
+
+        if ($request->filled('search')) {
+            $query->whereHas('activite', function ($q) use ($request) {
+                $q->where('titre', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->filled('date_debut')) {
+            $query->whereDate('dateenvoi', '>=', $request->date_debut);
+        }
+
+        if ($request->filled('lu')) {
+            $query->where('vue', $request->lu === 'oui');
+        }
+
+        $notifications = $query->latest('dateenvoi')->paginate(25)->withQueryString();
+
+        $nonLues = Notification::where('envoye', true)
+            ->where('vue', false)
+            ->whereHas('activite', function($q) use ($userId) {
+                $q->where('user_id', $userId)
+                ->orWhereHas('acces', function($q2) {
+                    $q2->where('droitacces', 'public');
+                });
+            })->count();
+
+        $alertesGmail = \App\Models\AlerteReseau::where('user_id', $userId)->where('type', 'gmail')->latest('detecte_a')->paginate(25)->withQueryString();
+        $alertesWhatsapp = \App\Models\AlerteReseau::where('user_id', $userId)->where('type', 'whatsapp')->latest('detecte_a')->paginate(25)->withQueryString();
+
+        return view('responsable.notifications', compact(
+            'notifications', 'nonLues', 'alertesGmail', 'alertesWhatsapp'
+        ));
+    }
+
+    public function marquerLue(Notification $notification)
+    {
+        $notification->update(['vue' => true]);
+        return back()->with('success', 'Notification marquée comme lue.');
+    }
+
+    public function marquerToutesLues()
+    {
+        $userId = auth()->id();
+        Notification::whereHas('activite', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->where('vue', false)->update(['vue' => true]);
+
+        return back()->with('success', 'Toutes les notifications marquées comme lues.');
+    }
+
+    // Retourne le préfixe de route selon le rôle
+    protected function routePrefix(): string
+    {
+        return auth()->user()->role === 'administrateur' ? 'admin.activites' : 'responsable';
+    }
+
+    protected function calculerDate(\Carbon\Carbon $base, int $valeur, string $unite, string $sens): \Carbon\Carbon
+    {
+        return match($unite) {
+            'secondes' => $sens === 'avant' ? $base->copy()->subSeconds($valeur) : $base->copy()->addSeconds($valeur),
+            'minutes'  => $sens === 'avant' ? $base->copy()->subMinutes($valeur) : $base->copy()->addMinutes($valeur),
+            'heures'   => $sens === 'avant' ? $base->copy()->subHours($valeur)   : $base->copy()->addHours($valeur),
+            'jours'    => $sens === 'avant' ? $base->copy()->subDays($valeur)    : $base->copy()->addDays($valeur),
+            default    => $base->copy(),
+        };
+    }
+
+    public function supprimerNotifications(Request $request)
+{
+    $request->validate([
+        'ids'   => ['required', 'array'],
+        'ids.*' => ['integer'],
+        'type'  => ['required', 'in:activites,gmail,whatsapp'],
+    ]);
+
+    $userId = auth()->id();
+
+    if ($request->type === 'activites') {
+        Notification::whereIn('id', $request->ids)
+            ->whereHas('activite', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->orWhereHas('acces', function ($q2) {
+                      $q2->where('droitacces', 'public');
+                  });
+            })->delete();
+    } else {
+        \App\Models\AlerteReseau::whereIn('id', $request->ids)
+            ->where('user_id', $userId)
+            ->where('type', $request->type)
+            ->delete();
+    }
+
+    return back()->with('success', 'Notifications supprimées.');
+}
+}

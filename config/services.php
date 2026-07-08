@@ -35,4 +35,25 @@ return [
         ],
     ],
 
+    'google' => [
+    'client_id'     => env('GOOGLE_CLIENT_ID'),
+    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+    'redirect'      => 'http://127.0.0.1:8000/auth/google/callback',
+],
+
+'google' => [
+    'client_id'      => env('GOOGLE_CLIENT_ID'),
+    'client_secret'  => env('GOOGLE_CLIENT_SECRET'),
+    'redirect'       => env('GOOGLE_REDIRECT_URI'),
+    'gmail_redirect' => env('GMAIL_REDIRECT_URI'),
+],
+
+'whatsapp' => [
+    'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+    'token'           => env('WHATSAPP_TOKEN'),
+    'verify_token'    => env('WHATSAPP_VERIFY_TOKEN'),
+],
+
+
+
 ];

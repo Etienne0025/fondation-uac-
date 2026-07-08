@@ -7,22 +7,31 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
+    
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    'nom',
+    'prenom',
+    'telephone',
+    'email',
+    'password',
+    'role',
+    'poste',
+    'active',
+    'google_id',
+    'avatar',
+];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -44,6 +53,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'active' => 'boolean',
         ];
     }
 }
