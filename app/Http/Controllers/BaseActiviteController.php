@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activite;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class BaseActiviteController extends Controller
@@ -18,11 +19,17 @@ class BaseActiviteController extends Controller
         $query = Activite::with(['acces', 'user'])
             ->where(function($q) use ($userId) {
                 $q->where('user_id', $userId)
-                  ->orWhereHas('acces', function($q2) {
-                      $q2->where('droitacces', 'public');
+                  ->orWhereHas('acces', function($q2) use ($userId) {
+                      $q2->where('droitacces', 'public')
+                         ->orWhere(function($q3) use ($userId) {
+                             $q3->where('droitacces', 'restreint')
+                                ->whereHas('membres', function($q4) use ($userId) {
+                                    $q4->where('users.id', $userId);
+                                });
+                         });
                   });
             });
- 
+
         if ($request->filled('search')) {
             $query->where('titre', 'like', '%' . $request->search . '%');
         }
@@ -61,7 +68,12 @@ class BaseActiviteController extends Controller
 
     public function create()
     {
-        return view($this->viewPrefix . '.create');
+        $utilisateurs = User::where('active', true)
+            ->where('id', '!=', auth()->id())
+            ->orderBy('nom')
+            ->get();
+
+        return view($this->viewPrefix . '.create', compact('utilisateurs'));
     }
 
     public function store(Request $request)
@@ -72,6 +84,8 @@ class BaseActiviteController extends Controller
             'date'                        => ['required', 'date'],
             'lieu'                        => ['required', 'string', 'max:255'],
             'droitacces'                  => ['required', 'in:prive,public,restreint'],
+            'membres'                     => ['required_if:droitacces,restreint', 'array'],
+            'membres.*'                   => ['integer', 'exists:users,id'],
             'rappels_avant_valeur'        => ['nullable', 'array'],
             'rappels_avant_valeur.*'      => ['integer', 'min:1'],
             'rappels_avant_unite'         => ['nullable', 'array'],
@@ -115,7 +129,11 @@ class BaseActiviteController extends Controller
             'alertes_apres'  => $alertesApres,
         ]);
 
-        $activite->acces()->create(['droitacces' => $request->droitacces]);
+        $acces = $activite->acces()->create(['droitacces' => $request->droitacces]);
+
+        if ($request->droitacces === 'restreint') {
+            $acces->membres()->sync($request->membres ?? []);
+        }
 
         $dateEvenement = \Carbon\Carbon::parse($request->date);
 
@@ -146,7 +164,15 @@ class BaseActiviteController extends Controller
     public function edit(Activite $activite)
     {
         abort_if($activite->user_id !== auth()->id(), 403);
-        return view($this->viewPrefix . '.edit', compact('activite'));
+
+        $utilisateurs = User::where('active', true)
+            ->where('id', '!=', auth()->id())
+            ->orderBy('nom')
+            ->get();
+
+        $membresSelectionnes = $activite->acces?->membres->pluck('id')->toArray() ?? [];
+
+        return view($this->viewPrefix . '.edit', compact('activite', 'utilisateurs', 'membresSelectionnes'));
     }
 
     public function update(Request $request, Activite $activite)
@@ -159,6 +185,8 @@ class BaseActiviteController extends Controller
             'date'                        => ['required', 'date'],
             'lieu'                        => ['required', 'string', 'max:255'],
             'droitacces'                  => ['required', 'in:prive,public,restreint'],
+            'membres'                     => ['required_if:droitacces,restreint', 'array'],
+            'membres.*'                   => ['integer', 'exists:users,id'],
             'rappels_avant_valeur'        => ['nullable', 'array'],
             'rappels_avant_valeur.*'      => ['integer', 'min:1'],
             'rappels_avant_unite'         => ['nullable', 'array'],
@@ -200,10 +228,16 @@ class BaseActiviteController extends Controller
             'alertes_apres'  => $alertesApres,
         ]);
 
-        $activite->acces()->updateOrCreate(
+        $acces = $activite->acces()->updateOrCreate(
             ['activite_id' => $activite->id],
             ['droitacces'  => $request->droitacces]
         );
+
+        if ($request->droitacces === 'restreint') {
+            $acces->membres()->sync($request->membres ?? []);
+        } else {
+            $acces->membres()->sync([]);
+        }
 
         $activite->notifications()->where('envoye', false)->delete();
 
@@ -298,9 +332,11 @@ class BaseActiviteController extends Controller
 
         $alertesGmail = \App\Models\AlerteReseau::where('user_id', $userId)->where('type', 'gmail')->latest('detecte_a')->paginate(25)->withQueryString();
         $alertesWhatsapp = \App\Models\AlerteReseau::where('user_id', $userId)->where('type', 'whatsapp')->latest('detecte_a')->paginate(25)->withQueryString();
+        $alertesMessenger = \App\Models\AlerteReseau::where('user_id', $userId)->where('type', 'messenger')->latest('detecte_a')->paginate(25)->withQueryString();
+        $alertesFacebook = \App\Models\AlerteReseau::where('user_id', $userId)->where('type', 'facebook')->latest('detecte_a')->paginate(25)->withQueryString();
 
         return view('responsable.notifications', compact(
-            'notifications', 'nonLues', 'alertesGmail', 'alertesWhatsapp'
+            'notifications', 'nonLues', 'alertesGmail', 'alertesWhatsapp', 'alertesMessenger', 'alertesFacebook'
         ));
     }
 
@@ -338,30 +374,30 @@ class BaseActiviteController extends Controller
     }
 
     public function supprimerNotifications(Request $request)
-{
-    $request->validate([
-        'ids'   => ['required', 'array'],
-        'ids.*' => ['integer'],
-        'type'  => ['required', 'in:activites,gmail,whatsapp'],
-    ]);
+    {
+        $request->validate([
+            'ids'   => ['required', 'array'],
+            'ids.*' => ['integer'],
+            'type'  => ['required', 'in:activites,gmail,whatsapp,messenger,facebook'],
+        ]);
 
-    $userId = auth()->id();
+        $userId = auth()->id();
 
-    if ($request->type === 'activites') {
-        Notification::whereIn('id', $request->ids)
-            ->whereHas('activite', function ($q) use ($userId) {
-                $q->where('user_id', $userId)
-                  ->orWhereHas('acces', function ($q2) {
-                      $q2->where('droitacces', 'public');
-                  });
-            })->delete();
-    } else {
-        \App\Models\AlerteReseau::whereIn('id', $request->ids)
-            ->where('user_id', $userId)
-            ->where('type', $request->type)
-            ->delete();
+        if ($request->type === 'activites') {
+            Notification::whereIn('id', $request->ids)
+                ->whereHas('activite', function ($q) use ($userId) {
+                    $q->where('user_id', $userId)
+                      ->orWhereHas('acces', function ($q2) {
+                          $q2->where('droitacces', 'public');
+                      });
+                })->delete();
+        } else {
+            \App\Models\AlerteReseau::whereIn('id', $request->ids)
+                ->where('user_id', $userId)
+                ->where('type', $request->type)
+                ->delete();
+        }
+
+        return back()->with('success', 'Notifications supprimées.');
     }
-
-    return back()->with('success', 'Notifications supprimées.');
-}
 }

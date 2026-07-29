@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Schedule;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Notification;
+use App\Http\Controllers\FacebookWebhookController;
+use App\Http\Controllers\WhatsappWebhookController;
+use App\Http\Controllers\BaseActiviteController;
+use App\Http\Controllers\PlanificationController;
 
 
 Route::get('/', function () {
@@ -40,7 +44,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/users',                       [AdminController::class, 'storeUser'])     ->name('store');
     Route::patch('/users/{user}/toggle',        [AdminController::class, 'toggleStatus'])  ->name('toggle');
     Route::delete('/users/{user}',              [AdminController::class, 'destroyUser'])   ->name('destroy');
-
+    Route::get('/planification', [PlanificationController::class, 'index'])->name('planification');
     // Activités admin (Correction : utilisation des noms de méthodes réels)
     Route::get('/activites',                    [AdminController::class, 'index'])        ->name('activites.index');
     Route::get('/activites/create',             [AdminController::class, 'create'])       ->name('activites.create');
@@ -79,6 +83,14 @@ Route::middleware(['auth'])->prefix('reseau')->name('reseau.')->group(function (
     Route::post('/delai',              [ReseauSocialController::class, 'sauvegarderDelai'])->name('delai');
     Route::post('/whatsapp/connecter', [ReseauSocialController::class, 'connecterWhatsApp'])->name('whatsapp.connecter');
     Route::delete('/{reseau}',         [ReseauSocialController::class, 'deconnecter'])     ->name('deconnecter');
+
+    // Messenger (messages privés de la Page)
+    Route::get('/messenger/connecter', [ReseauSocialController::class, 'connecterMessenger'])->name('messenger.connecter');
+    Route::get('/messenger/callback',  [ReseauSocialController::class, 'callbackMessenger']) ->name('messenger.callback');
+
+    // Facebook (commentaires sur les publications de la Page)
+    Route::get('/facebook/connecter',  [ReseauSocialController::class, 'connecterFacebook']) ->name('facebook.connecter');
+    Route::get('/facebook/callback',   [ReseauSocialController::class, 'callbackFacebook'])  ->name('facebook.callback');
 });
 
 // ===== Google OAuth =====
@@ -131,7 +143,16 @@ Broadcast::routes(['middleware' => ['web', 'auth']]);
 
 Route::post('/notifications/lire', [BaseActiviteController::class, 'marquerToutesLues']);
 
-use App\Http\Controllers\WhatsappWebhookController;
+//use App\Http\Controllers\BaseActiviteController;
 
 Route::get('/webhook/whatsapp', [WhatsappWebhookController::class, 'verifier']);
 Route::post('/webhook/whatsapp', [WhatsappWebhookController::class, 'recevoir']);
+
+Route::withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)->group(function () {
+    Route::get('/webhook/facebook',  [FacebookWebhookController::class, 'verifier']);
+    Route::post('/webhook/facebook', [FacebookWebhookController::class, 'recevoir']);
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/planification/observation', [PlanificationController::class, 'updateObservation'])->name('planification.observation');
+});

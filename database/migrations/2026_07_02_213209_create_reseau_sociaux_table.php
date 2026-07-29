@@ -14,7 +14,7 @@ return new class extends Migration
     Schema::create('reseau_sociaux', function (Blueprint $table) {
         $table->id();
         $table->foreignId('user_id')->constrained()->onDelete('cascade');
-        $table->enum('nomcompte', ['gmail', 'whatsapp']);
+        $table->enum('nomcompte', ['gmail', 'whatsapp','facebook','messenger']);
         $table->string('email_compte')->nullable();       // pour gmail
         $table->string('telephone_compte')->nullable();   // pour whatsapp
         $table->string('access_token')->nullable();       // token OAuth Gmail

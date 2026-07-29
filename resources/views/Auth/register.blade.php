@@ -1,48 +1,7 @@
 <x-app-layout>
 <div class="flex h-screen bg-gray-100">
 
-    {{-- Sidebar --}}
-    <aside class="w-60 bg-white border-r border-gray-200 flex flex-col">
-        <div class="p-5 border-b border-gray-200 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm">
-                <img src="/image/logo-fuac.jpg" alt="">
-            </div>
-            <div>
-                <p class="font-semibold text-sm text-gray-800">Startup-Valley Agenda</p>
-                <p class="text-xs text-gray-400">Fondation UAC</p>
-            </div>
-        </div>
-
-        <nav class="flex-1 p-3 space-y-0.5">
-            <p class="text-[10px] uppercase font-semibold text-gray-400 px-3 pt-4 pb-1 tracking-widest">Principal</p>
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700">
-                Dashboard
-            </a>
-
-            <p class="text-[10px] uppercase font-semibold text-gray-400 px-3 pt-4 pb-1 tracking-widest">Utilisateurs</p>
-            <a href="{{ route('admin.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700">
-                Gestion utilisateurs
-            </a>
-            <a href="{{ route('admin.create') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm bg-green-100 text-green-800 font-medium">
-                Ajouter un utilisateur
-            </a>
-
-            <p class="text-[10px] uppercase font-semibold text-gray-400 px-3 pt-4 pb-1 tracking-widest">Agenda</p>
-            <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700">Événements</a>
-            <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700">Activités</a>
-            <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700">Notifications</a>
-        </nav>
-
-        <div class="p-4 border-t border-gray-200 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-green-700 text-white text-xs font-semibold flex items-center justify-center">
-                {{ strtoupper(substr(auth()->user()->nom, 0, 1)) }}{{ strtoupper(substr(auth()->user()->prenom, 0, 1)) }}
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-800">{{ auth()->user()->nom }}</p>
-                <p class="text-xs text-gray-400">{{ auth()->user()->role }}</p>
-            </div>
-        </div>
-    </aside>
+    <x-sidebar-admin />
 
     {{-- Main --}}
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -71,6 +30,12 @@
             </div>
             @endif
 
+            @php
+                $roleImpose = request()->query('role'); // 'coach', 'stagiaire', 'staff' ou null
+                $estRoleVerrouille = in_array($roleImpose, ['coach', 'stagiaire']);
+                $labels = ['coach' => 'Coach', 'stagiaire' => 'Stagiaire'];
+            @endphp
+
             <div class="max-w-2xl bg-white border border-gray-200 rounded-xl p-6">
 
                 <div class="mb-6">
@@ -78,7 +43,7 @@
                     <p class="text-xs text-gray-400 mt-1">Un mot de passe sera généré et envoyé automatiquement par email.</p>
                 </div>
 
-                <form method="POST" action="{{ route('admin.store') }}">
+                <form method="POST" action="{{ route('admin.store') }}" id="form-utilisateur">
                     @csrf
 
                     {{-- Ligne 1 : Nom et Prénom --}}
@@ -117,18 +82,28 @@
                     <div class="grid grid-cols-2 gap-4 mb-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
-                            <select name="role"
-                                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm bg-white">
-                                <option value="Responsable" {{ old('role', 'Responsable') == 'Responsable' ? 'selected' : '' }}>Responsable</option>
-                                <option value="Administrateur" {{ old('role') == 'Administrateur' ? 'selected' : '' }}>Administrateur</option>
-                               
-                            </select>
+
+                            @if($estRoleVerrouille)
+                                {{-- Rôle imposé par la page d'origine (Coachs / Stagiaires) : pas de choix à faire --}}
+                                <div class="w-full p-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700">
+                                    {{ $labels[$roleImpose] }}
+                                </div>
+                                <input type="hidden" name="role" id="role-select" value="{{ $roleImpose }}">
+                            @else
+                                <select name="role" id="role-select" onchange="togglePoste()"
+                                    class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm bg-white">
+                                    <option value="responsable" {{ old('role', 'responsable') == 'responsable' ? 'selected' : '' }}>Responsable</option>
+                                    <option value="administrateur" {{ old('role') == 'administrateur' ? 'selected' : '' }}>Administrateur</option>
+                                    <option value="coach" {{ old('role') == 'coach' ? 'selected' : '' }}>Coach</option>
+                                    <option value="stagiaire" {{ old('role') == 'stagiaire' ? 'selected' : '' }}>Stagiaire</option>
+                                </select>
+                            @endif
                         </div>
-                        <div>
+                        <div id="poste-container" class="{{ $estRoleVerrouille ? 'hidden' : '' }}">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Poste</label>
-                            <input type="text" name="poste" value="{{ old('poste') }}"
+                            <input type="text" name="poste" id="poste-input" value="{{ old('poste') }}"
                                 class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
-                                placeholder="Ex : Chargé de programme" required>
+                                placeholder="Ex : Chargé de programme">
                         </div>
                     </div>
 
@@ -138,7 +113,7 @@
                             class="bg-green-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg hover:bg-green-800 transition">
                             Créer le compte et envoyer le mot de passe
                         </button>
-                        <a href="{{ route('admin.index') }}"
+                        <a href="{{ route('admin.index', ['role' => $roleImpose]) }}"
                             class="border border-gray-200 text-sm text-gray-500 px-6 py-2.5 rounded-lg hover:bg-gray-50 transition">
                             Annuler
                         </a>
@@ -149,4 +124,25 @@
         </main>
     </div>
 </div>
+
+<script>
+function togglePoste() {
+    const select = document.getElementById('role-select');
+    const container = document.getElementById('poste-container');
+    const input = document.getElementById('poste-input');
+
+    // Le poste n'est pertinent (et requis côté serveur) que pour un Responsable.
+    if (select.tagName === 'SELECT' && select.value === 'responsable') {
+        container.classList.remove('hidden');
+        input.setAttribute('required', 'required');
+    } else {
+        container.classList.add('hidden');
+        input.removeAttribute('required');
+        input.value = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', togglePoste);
+</script>
+
 </x-app-layout>

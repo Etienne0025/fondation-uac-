@@ -246,6 +246,203 @@
                     @endif
                 </div>
 
+                {{-- Messenger --}}
+<div class="bg-white border border-gray-200 rounded-xl p-6">
+    <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="#0084FF">
+                <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.615 4.469 8.652V24l4.088-2.242c1.09.301 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-gray-800">Messenger</p>
+            <p class="text-xs text-gray-400">Alertes messages privés non traités</p>
+        </div>
+        @if($messenger && $messenger->actif)
+        <span class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+            ✓ Connecté
+        </span>
+        @else
+        <span class="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+            Non connecté
+        </span>
+        @endif
+    </div>
+
+    @if($messenger && $messenger->actif)
+
+        <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm text-gray-600">
+            <p><span class="font-medium">Page :</span> {{ $messenger->nom_page }}</p>
+        </div>
+
+        <form method="POST" action="{{ route('reseau.delai') }}" class="mb-4">
+            @csrf
+            <input type="hidden" name="nomcompte" value="messenger">
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+                Délai d'alerte sans réponse
+            </label>
+            <div class="flex gap-2">
+                <input type="number" name="delai_alerte" min="1"
+                    value="{{ $messenger->delai_alerte }}"
+                    class="w-24 p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                <select name="delai_unite"
+                    class="flex-1 p-2 border border-gray-300 rounded-lg text-sm outline-none bg-white focus:ring-green-600 focus:border-green-600">
+                    <option value="minutes" {{ ($messenger->delai_unite ?? 'minutes') == 'minutes' ? 'selected' : '' }}>Minute(s)</option>
+                    <option value="heures"  {{ ($messenger->delai_unite ?? '') == 'heures'  ? 'selected' : '' }}>Heure(s)</option>
+                    <option value="jours"   {{ ($messenger->delai_unite ?? '') == 'jours'   ? 'selected' : '' }}>Jour(s)</option>
+                </select>
+                <button type="submit"
+                    class="bg-green-700 text-white text-xs px-4 py-2 rounded-lg hover:bg-green-800 transition">
+                    Sauvegarder
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">
+                Alerte si message non traité depuis plus de
+                {{ $messenger->delai_alerte }} {{ $messenger->delai_unite ?? 'minute(s)' }}.
+            </p>
+        </form>
+
+        <form method="POST" action="{{ route('reseau.deconnecter', $messenger) }}">
+            @csrf @method('DELETE')
+            <button type="submit"
+                onclick="return confirm('Déconnecter Messenger ?')"
+                class="text-xs border border-red-200 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition">
+                Déconnecter Messenger
+            </button>
+        </form>
+
+    @else
+
+        <p class="text-xs text-gray-500 mb-4">
+            Connectez votre Page Facebook pour recevoir des alertes quand un message privé reste sans réponse.
+        </p>
+
+        <div class="mb-4">
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+                Délai d'alerte (après connexion)
+            </label>
+            <div class="flex gap-2">
+                <input type="number" name="delai_alerte_messenger" min="1" value="30" id="delai_messenger"
+                    class="w-24 p-2 border border-gray-300 rounded-lg text-sm outline-none">
+                <select name="delai_unite_messenger" id="unite_messenger"
+                    class="flex-1 p-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
+                    <option value="minutes">Minute(s)</option>
+                    <option value="heures">Heure(s)</option>
+                    <option value="jours">Jour(s)</option>
+                </select>
+            </div>
+        </div>
+
+        <a href="{{ route('reseau.messenger.connecter') }}"
+            class="flex items-center justify-center gap-2 w-full border border-gray-300 rounded-lg py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="#0084FF">
+                <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.615 4.469 8.652V24l4.088-2.242c1.09.301 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+            </svg>
+            Connecter Messenger
+        </a>
+
+    @endif
+</div>
+
+
+{{-- Facebook (commentaires) --}}
+<div class="bg-white border border-gray-200 rounded-xl p-6">
+    <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="#1877F2">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-gray-800">Facebook</p>
+            <p class="text-xs text-gray-400">Alertes commentaires non traités</p>
+        </div>
+        @if($facebook && $facebook->actif)
+        <span class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+            ✓ Connecté
+        </span>
+        @else
+        <span class="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+            Non connecté
+        </span>
+        @endif
+    </div>
+
+    @if($facebook && $facebook->actif)
+
+        <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm text-gray-600">
+            <p><span class="font-medium">Page :</span> {{ $facebook->nom_page }}</p>
+        </div>
+
+        <form method="POST" action="{{ route('reseau.delai') }}" class="mb-4">
+            @csrf
+            <input type="hidden" name="nomcompte" value="facebook">
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+                Délai d'alerte sans réponse
+            </label>
+            <div class="flex gap-2">
+                <input type="number" name="delai_alerte" min="1"
+                    value="{{ $facebook->delai_alerte }}"
+                    class="w-24 p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                <select name="delai_unite"
+                    class="flex-1 p-2 border border-gray-300 rounded-lg text-sm outline-none bg-white focus:ring-green-600 focus:border-green-600">
+                    <option value="minutes" {{ ($facebook->delai_unite ?? 'minutes') == 'minutes' ? 'selected' : '' }}>Minute(s)</option>
+                    <option value="heures"  {{ ($facebook->delai_unite ?? '') == 'heures'  ? 'selected' : '' }}>Heure(s)</option>
+                    <option value="jours"   {{ ($facebook->delai_unite ?? '') == 'jours'   ? 'selected' : '' }}>Jour(s)</option>
+                </select>
+                <button type="submit"
+                    class="bg-green-700 text-white text-xs px-4 py-2 rounded-lg hover:bg-green-800 transition">
+                    Sauvegarder
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">
+                Alerte si commentaire non traité depuis plus de
+                {{ $facebook->delai_alerte }} {{ $facebook->delai_unite ?? 'minute(s)' }}.
+            </p>
+        </form>
+
+        <form method="POST" action="{{ route('reseau.deconnecter', $facebook) }}">
+            @csrf @method('DELETE')
+            <button type="submit"
+                onclick="return confirm('Déconnecter Facebook ?')"
+                class="text-xs border border-red-200 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition">
+                Déconnecter Facebook
+            </button>
+        </form>
+
+    @else
+
+        <p class="text-xs text-gray-500 mb-4">
+            Connectez votre Page Facebook pour recevoir des alertes quand un commentaire reste sans réponse.
+        </p>
+
+        <div class="mb-4">
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+                Délai d'alerte (après connexion)
+            </label>
+            <div class="flex gap-2">
+                <input type="number" name="delai_alerte_facebook" min="1" value="30" id="delai_facebook"
+                    class="w-24 p-2 border border-gray-300 rounded-lg text-sm outline-none">
+                <select name="delai_unite_facebook" id="unite_facebook"
+                    class="flex-1 p-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
+                    <option value="minutes">Minute(s)</option>
+                    <option value="heures">Heure(s)</option>
+                    <option value="jours">Jour(s)</option>
+                </select>
+            </div>
+        </div>
+
+        <a href="{{ route('reseau.facebook.connecter') }}"
+            class="flex items-center justify-center gap-2 w-full border border-gray-300 rounded-lg py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            Connecter Facebook
+        </a>
+
+    @endif
+</div>
+
             </div>
         </main>
     </div>

@@ -19,7 +19,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    
+
     protected $fillable = [
     'nom',
     'prenom',
@@ -56,4 +56,18 @@ class User extends Authenticatable
             'active' => 'boolean',
         ];
     }
+
+    /**
+     * Les acces restreints auxquels cet utilisateur a ete autorise.
+     */
+    public function accesRestreints()
+    {
+        return $this->belongsToMany(AccesActivite::class, 'acces_activite_utilisateur', 'user_id', 'acces_activite_id')
+                     ->withTimestamps();
+    }
+   
+public function setRoleAttribute($value)
+{
+    $this->attributes['role'] = strtolower(trim($value));
+}
 }

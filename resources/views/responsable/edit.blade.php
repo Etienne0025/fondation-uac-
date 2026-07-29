@@ -61,13 +61,40 @@
                     {{-- Droit d'accès --}}
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Droit d'accès</label>
-                        <select name="droitacces"
+                        @php $droitActuel = old('droitacces', $activite->acces->droitacces ?? 'public'); @endphp
+                        <select name="droitacces" id="droitacces-select" onchange="toggleMembres()"
                             class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm bg-white">
-                            @php $droitActuel = old('droitacces', $activite->acces->droitacces ?? 'public'); @endphp
                             <option value="public"    {{ $droitActuel == 'public'    ? 'selected' : '' }}>Public</option>
                             <option value="prive"     {{ $droitActuel == 'prive'     ? 'selected' : '' }}>Privé</option>
                             <option value="restreint" {{ $droitActuel == 'restreint' ? 'selected' : '' }}>Restreint</option>
                         </select>
+                    </div>
+
+                    {{-- Membres autorisés (visible uniquement si Restreint) --}}
+                    <div id="membres-container" class="mb-4 {{ $droitActuel == 'restreint' ? '' : 'hidden' }}">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Membres autorisés
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">
+                            Sélectionne les personnes qui pourront voir cette activité et y participer.
+                        </p>
+                        <div class="border border-gray-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
+                            @php $selectionnes = old('membres', $membresSelectionnes); @endphp
+                            @forelse($utilisateurs as $u)
+                            <label class="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="membres[]" value="{{ $u->id }}"
+                                    {{ in_array($u->id, $selectionnes) ? 'checked' : '' }}
+                                    class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                <span class="text-gray-700">{{ $u->nom }} {{ $u->prenom }}</span>
+                                <span class="text-xs text-gray-400 ml-auto">{{ $u->poste ?? $u->role }}</span>
+                            </label>
+                            @empty
+                            <p class="px-3 py-4 text-sm text-gray-400 text-center">Aucun membre actif disponible.</p>
+                            @endforelse
+                        </div>
+                        @error('membres')
+                        <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Rappels avant --}}
@@ -201,6 +228,16 @@
 </div>
 
 <script>
+function toggleMembres() {
+    const select = document.getElementById('droitacces-select');
+    const container = document.getElementById('membres-container');
+    if (select.value === 'restreint') {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
 function getOptionsAvant() {
     return `
         <option value="secondes">Seconde(s) avant</option>

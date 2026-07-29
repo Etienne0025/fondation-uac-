@@ -10,7 +10,8 @@ class ReseauSocial extends Model
 
     protected $fillable = [
     'user_id', 'nomcompte', 'email_compte',
-    'telephone_compte', 'access_token', 'refresh_token',
+    'telephone_compte', 'page_id', 'nom_page',
+    'access_token', 'refresh_token',
     'delai_alerte', 'delai_unite', 'actif', 'derniere_verification',
 ];
 

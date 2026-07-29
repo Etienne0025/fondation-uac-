@@ -76,16 +76,27 @@ window.afficherBanniere = function(titre, message, type) {
     }, 6000);
 }
 
-// Mettre à jour le badge et le dropdown
+// Mettre à jour le badge (dropdown + sidebar) et le dropdown
 function mettreAJourBadge(notifications) {
     const badge    = document.getElementById('notif-badge');
     const liste    = document.getElementById('notif-liste');
-
-    if (!badge || !liste) return;
+    const badgeSidebar = document.getElementById('sidebar-notif-badge');
 
     const count = notifications.length;
 
-    // Badge
+    // Badge du sidebar (toutes notifications confondues : activites + reseaux)
+    if (badgeSidebar) {
+        if (count > 0) {
+            badgeSidebar.textContent = count > 99 ? '99+' : count;
+            badgeSidebar.classList.remove('hidden');
+        } else {
+            badgeSidebar.classList.add('hidden');
+        }
+    }
+
+    if (!badge || !liste) return;
+
+    // Badge du dropdown (menu cloche)
     if (count > 0) {
         badge.textContent = count > 99 ? '99+' : count;
         badge.classList.remove('hidden');
@@ -104,15 +115,16 @@ function mettreAJourBadge(notifications) {
     }
 
     liste.innerHTML = notifications.map(notif => {
-        const titre  = notif.activite?.titre || 'FUAC Agenda';
+        const titre  = notif.activite?.titre || notif.expediteur || 'FUAC Agenda';
         const icone  = notif.type === 'rappel' ? '🔔' : '⚠️';
-        const couleur = notif.type === 'rappel' ? '#dcfce7' : '#fee2e2';
-        const date   = new Date(notif.dateenvoi).toLocaleString('fr-FR', {
+        const date   = new Date(notif.dateenvoi || notif.detecte_a).toLocaleString('fr-FR', {
             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
         });
         const message = notif.type === 'rappel'
             ? 'Rappel : "' + titre + '" approche.'
-            : 'Alerte : "' + titre + '" non marquée comme faite.';
+            : notif.type === 'alerte'
+                ? 'Alerte : "' + titre + '" non marquée comme faite.'
+                : 'De: ' + (notif.expediteur || 'Inconnu');
 
         return `
             <div class="flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50"
@@ -145,6 +157,9 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// Stock notifications non lues (accumule entre chaque sondage)
+let notificationsNonLues = [];
+
 // Marquer toutes comme lues
 window.marquerToutesLues = async function() {
     await fetch('/notifications/lire', {
@@ -155,9 +170,14 @@ window.marquerToutesLues = async function() {
         }
     });
 
+    // Vide le tableau local, sinon le prochain sondage rafficherait les anciennes
+    notificationsNonLues = [];
+
     const badge = document.getElementById('notif-badge');
     const liste = document.getElementById('notif-liste');
+    const badgeSidebar = document.getElementById('sidebar-notif-badge');
     if (badge) badge.classList.add('hidden');
+    if (badgeSidebar) badgeSidebar.classList.add('hidden');
     if (liste) liste.innerHTML = `
         <div class="px-4 py-8 text-center text-sm text-gray-400">
             Aucune nouvelle notification
@@ -165,10 +185,6 @@ window.marquerToutesLues = async function() {
     `;
 }
 
-// Stock notifications non lues
-let notificationsNonLues = [];
-
-// Polling — vérifier toutes les 10 secondes
 // Polling vérifiant toutes les 10 secondes
 async function verifierNotifications() {
     try {
@@ -182,12 +198,15 @@ async function verifierNotifications() {
         if (!response.ok) return;
 
         const data = await response.json();
+        let nouvelles = false;
 
         // Gestion Activités
         if (data.activites && data.activites.length > 0) {
             data.activites.forEach(notif => {
                 window.afficherBanniere(notif.activite.titre, 'Rappel activité', notif.type);
+                notificationsNonLues.push(notif);
             });
+            nouvelles = true;
             // Recharger la liste si nécessaire
             if (typeof rafraichirListe === 'function') rafraichirListe();
         }
@@ -200,7 +219,14 @@ async function verifierNotifications() {
                     'De: ' + alerte.expediteur,
                     'alerte'
                 );
+                notificationsNonLues.push(alerte);
             });
+            nouvelles = true;
+        }
+
+        // Met a jour le badge et le dropdown uniquement s'il y a du nouveau
+        if (nouvelles) {
+            mettreAJourBadge(notificationsNonLues);
         }
     } catch (error) {
         console.error('Erreur Polling:', error);
@@ -218,7 +244,7 @@ window.supprimerSelectionnes = async function(formElement) {
         body: formData,
         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
     });
-    
+
     if (response.ok) {
         location.reload(); // Recharger pour nettoyer l'interface
     }

@@ -30,21 +30,39 @@
                     action="{{ auth()->user()->role === 'administrateur' ? route('admin.activites.store') : route('responsable.store') }}">
                     @csrf
 
-                    {{-- Titre --}}
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
-                        <input type="text" name="titre" value="{{ old('titre') }}"
-                            class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
-                            placeholder="Titre de l'activité" required>
-                    </div>
+                   {{-- Titre --}}
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+    <div class="relative">
+        <input type="text" name="titre" id="titre" value="{{ old('titre') }}"
+            class="w-full p-2.5 pr-11 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
+            placeholder="Titre de l'activité" required>
+        <button type="button" onclick="dicter('titre', this)"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-700 transition"
+            title="Dicter le titre">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+        </button>
+    </div>
+</div>
 
-                    {{-- Description --}}
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea name="description" rows="3"
-                            class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
-                            placeholder="Décrivez l'activité..." required>{{ old('description') }}</textarea>
-                    </div>
+                   {{-- Description --}}
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+    <div class="relative">
+        <textarea name="description" id="description" rows="3"
+            class="w-full p-2.5 pr-11 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
+            placeholder="Décrivez l'activité..." required>{{ old('description') }}</textarea>
+        <button type="button" onclick="dicter('description', this)"
+            class="absolute right-2 top-2 text-gray-400 hover:text-green-700 transition"
+            title="Dicter la description">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+        </button>
+    </div>
+</div>
 
                     {{-- Date/heure et Lieu --}}
                     <div class="grid grid-cols-2 gap-4 mb-4">
@@ -54,23 +72,59 @@
                                 class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
                                 required>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
-                            <input type="text" name="lieu" value="{{ old('lieu') }}"
-                                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
-                                placeholder="Ex : Salle A, FUAC" required>
-                        </div>
+                       <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
+    <div class="relative">
+        <input type="text" name="lieu" id="lieu" value="{{ old('lieu') }}"
+            class="w-full p-2.5 pr-11 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
+            placeholder="Ex : Salle A, FUAC" required>
+        <button type="button" onclick="dicter('lieu', this)"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-700 transition"
+            title="Dicter le lieu">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+        </button>
+    </div>
+</div>
                     </div>
 
                     {{-- Droit d'accès --}}
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Droit d'accès</label>
-                        <select name="droitacces"
+                        <select name="droitacces" id="droitacces-select" onchange="toggleMembres()"
                             class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm bg-white">
                             <option value="public"    {{ old('droitacces', 'public') == 'public'    ? 'selected' : '' }}>Public</option>
                             <option value="prive"     {{ old('droitacces') == 'prive'     ? 'selected' : '' }}>Privé</option>
                             <option value="restreint" {{ old('droitacces') == 'restreint' ? 'selected' : '' }}>Restreint</option>
                         </select>
+                    </div>
+
+                    {{-- Membres autorisés (visible uniquement si Restreint) --}}
+                    <div id="membres-container" class="mb-4 {{ old('droitacces') == 'restreint' ? '' : 'hidden' }}">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Membres autorisés
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">
+                            Sélectionne les personnes qui pourront voir cette activité et y participer.
+                        </p>
+                        <div class="border border-gray-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
+                            @forelse($utilisateurs as $u)
+                            @php $selectionnes = old('membres', []); @endphp
+                            <label class="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="membres[]" value="{{ $u->id }}"
+                                    {{ in_array($u->id, $selectionnes) ? 'checked' : '' }}
+                                    class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                <span class="text-gray-700">{{ $u->nom }} {{ $u->prenom }}</span>
+                                <span class="text-xs text-gray-400 ml-auto">{{ $u->poste ?? $u->role }}</span>
+                            </label>
+                            @empty
+                            <p class="px-3 py-4 text-sm text-gray-400 text-center">Aucun membre actif disponible.</p>
+                            @endforelse
+                        </div>
+                        @error('membres')
+                        <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Rappels avant --}}
@@ -155,6 +209,59 @@
 </div>
 
 <script>
+
+    function dicter(champId, boutonEl) {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+        alert("La dictée vocale n'est pas prise en charge par ce navigateur. Utilisez Chrome ou Edge.");
+        return;
+    }
+
+    const champ = document.getElementById(champId);
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // Retour visuel pendant l'écoute
+    boutonEl.classList.add('text-red-600', 'animate-pulse');
+    boutonEl.disabled = true;
+
+    recognition.onresult = function (event) {
+        const texte = event.results[0][0].transcript;
+        if (champ.value.trim().length > 0) {
+            champ.value += ' ' + texte;
+        } else {
+            champ.value = texte;
+        }
+    };
+
+    recognition.onerror = function (event) {
+        if (event.error !== 'no-speech') {
+            alert("Erreur de reconnaissance vocale : " + event.error);
+        }
+    };
+
+    recognition.onend = function () {
+        boutonEl.classList.remove('text-red-600', 'animate-pulse');
+        boutonEl.disabled = false;
+    };
+
+    recognition.start();
+}
+
+
+function toggleMembres() {
+    const select = document.getElementById('droitacces-select');
+    const container = document.getElementById('membres-container');
+    if (select.value === 'restreint') {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
 function getOptionsAvant() {
     return `
         <option value="secondes">Seconde(s) avant</option>

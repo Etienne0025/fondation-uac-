@@ -14,4 +14,10 @@ class AccesActivite extends Model
     {
         return $this->belongsTo(Activite::class);
     }
+
+    public function membres()
+    {
+        return $this->belongsToMany(User::class, 'acces_activite_utilisateur', 'acces_activite_id', 'user_id')
+                     ->withTimestamps();
+    }
 }

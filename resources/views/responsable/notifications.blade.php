@@ -23,7 +23,7 @@
             @endif
 
             {{-- Stats --}}
-            <div class="grid grid-cols-4 gap-3 mb-6">
+            <div class="grid grid-cols-6 gap-3 mb-6">
                 <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
                     <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -43,7 +43,7 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $alertesGmail->count() }}</p>
+                        <p class="text-xl font-semibold text-gray-800">{{ $alertesGmail->total() }}</p>
                         <p class="text-xs text-gray-400">Alertes Gmail</p>
                     </div>
                 </div>
@@ -54,8 +54,30 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $alertesWhatsapp->count() }}</p>
+                        <p class="text-xl font-semibold text-gray-800">{{ $alertesWhatsapp->total() }}</p>
                         <p class="text-xs text-gray-400">Alertes WhatsApp</p>
+                    </div>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="#0084FF" viewBox="0 0 24 24">
+                            <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.615 4.469 8.652V24l4.088-2.242c1.09.301 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xl font-semibold text-gray-800">{{ $alertesMessenger->total() }}</p>
+                        <p class="text-xs text-gray-400">Alertes Messenger</p>
+                    </div>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xl font-semibold text-gray-800">{{ $alertesFacebook->total() }}</p>
+                        <p class="text-xs text-gray-400">Alertes Facebook</p>
                     </div>
                 </div>
                 <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
@@ -94,9 +116,9 @@
                             <path d="M20 4H4L12 13L20 4z" fill="#FBBC05"/>
                         </svg>
                         Gmail
-                        @if($alertesGmail->count() > 0)
+                        @if($alertesGmail->total() > 0)
                         <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">
-                            {{ $alertesGmail->count() }}
+                            {{ $alertesGmail->total() }}
                         </span>
                         @endif
                     </button>
@@ -107,9 +129,35 @@
                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                         </svg>
                         WhatsApp
-                        @if($alertesWhatsapp->count() > 0)
+                        @if($alertesWhatsapp->total() > 0)
                         <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
-                            {{ $alertesWhatsapp->count() }}
+                            {{ $alertesWhatsapp->total() }}
+                        </span>
+                        @endif
+                    </button>
+
+                    <button type="button" onclick="afficherOnglet('messenger')" id="tab-messenger"
+                        class="flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors">
+                        <svg class="w-4 h-4" fill="#0084FF" viewBox="0 0 24 24">
+                            <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.615 4.469 8.652V24l4.088-2.242c1.09.301 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+                        </svg>
+                        Messenger
+                        @if($alertesMessenger->total() > 0)
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                            {{ $alertesMessenger->total() }}
+                        </span>
+                        @endif
+                    </button>
+
+                    <button type="button" onclick="afficherOnglet('facebook')" id="tab-facebook"
+                        class="flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors">
+                        <svg class="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                        Facebook
+                        @if($alertesFacebook->total() > 0)
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                            {{ $alertesFacebook->total() }}
                         </span>
                         @endif
                     </button>
@@ -189,11 +237,37 @@
                         </div>
                     </div>
 
+                    {{-- Filtre Messenger --}}
+                    <div id="filtre-messenger" class="hidden mb-3">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Rechercher dans Messenger</label>
+                        <div class="relative">
+                            <input type="text" name="search_messenger" value="{{ request('search_messenger') }}"
+                                placeholder="Expéditeur, message..."
+                                class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-green-600 focus:border-green-600 outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    {{-- Filtre Facebook --}}
+                    <div id="filtre-facebook" class="hidden mb-3">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Rechercher dans Facebook</label>
+                        <div class="relative">
+                            <input type="text" name="search_facebook" value="{{ request('search_facebook') }}"
+                                placeholder="Expéditeur, commentaire..."
+                                class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-green-600 focus:border-green-600 outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                        </div>
+                    </div>
+
                     <div class="flex gap-2">
                         <button type="submit" class="bg-green-700 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-green-800 transition">
                             Filtrer
                         </button>
-                        @if(request()->hasAny(['search', 'search_gmail', 'search_whatsapp', 'type', 'date_debut', 'date_fin', 'lu']))
+                        @if(request()->hasAny(['search', 'search_gmail', 'search_whatsapp', 'search_messenger', 'search_facebook', 'type', 'date_debut', 'date_fin', 'lu']))
                         <a href="{{ route('responsable.notifications', ['onglet' => request('onglet', 'activites')]) }}"
                             class="border border-gray-200 text-xs text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
                             Réinitialiser
@@ -453,6 +527,144 @@
                     <div class="p-4">{{ $alertesWhatsapp->links() }}</div>
                 </div>
 
+                {{-- Contenu onglet Messenger --}}
+                <div id="contenu-messenger" class="hidden">
+                    <form id="form-messenger" method="POST" action="{{ route('responsable.notifications.supprimer') }}">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="type" value="messenger">
+
+                        <div class="flex items-center justify-between bg-gray-50 border-b border-gray-100 px-5 py-2">
+                            <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                <input type="checkbox" id="selectall-messenger" onclick="toggleAll('messenger', this)"
+                                    class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                Tout sélectionner
+                            </label>
+                            <button type="submit" id="btn-delete-messenger" disabled
+                                onclick="return confirm('Supprimer les alertes Messenger sélectionnées ?');"
+                                class="flex items-center gap-1 text-xs bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 transition opacity-40 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                </svg>
+                                Supprimer (<span id="count-messenger">0</span>)
+                            </button>
+                        </div>
+
+                        @forelse($alertesMessenger as $alerte)
+                        <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-100
+                            {{ !$alerte->vue ? 'bg-blue-50 border-l-4 border-blue-400' : 'border-l-4 border-transparent' }}
+                            hover:bg-gray-50 transition">
+                            <input type="checkbox" name="ids[]" value="{{ $alerte->id }}" onchange="updateToolbar('messenger')"
+                                class="mt-2 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                            <div class="mt-1 w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="#0084FF" viewBox="0 0 24 24">
+                                    <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.615 4.469 8.652V24l4.088-2.242c1.09.301 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Messenger</span>
+                                    @if(!$alerte->vue)
+                                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Nouveau</span>
+                                    @endif
+                                </div>
+                                <p class="text-sm font-semibold text-gray-800">
+                                    Message non répondu de
+                                    <span class="text-blue-600">{{ $alerte->expediteur ?? 'Inconnu' }}</span>
+                                </p>
+                                @if($alerte->sujet)
+                                <p class="text-xs text-gray-500 mt-0.5">{{ $alerte->sujet }}</p>
+                                @endif
+                                <p class="text-xs text-gray-400 mt-1">
+                                    {{ \Carbon\Carbon::parse($alerte->detecte_a)->isoFormat('dddd D MMMM YYYY [à] H[h]mm') }}
+                                </p>
+                            </div>
+                            <a href="https://www.messenger.com" target="_blank"
+                                class="text-xs border border-gray-200 rounded-md px-3 py-1.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition">
+                                Ouvrir Messenger
+                            </a>
+                        </div>
+                        @empty
+                        <div class="px-5 py-12 text-center">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="#0084FF" viewBox="0 0 24 24">
+                                <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.615 4.469 8.652V24l4.088-2.242c1.09.301 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+                            </svg>
+                            <p class="text-sm text-gray-500">Aucune alerte Messenger.</p>
+                        </div>
+                        @endforelse
+                    </form>
+                    <div class="p-4">{{ $alertesMessenger->links() }}</div>
+                </div>
+
+                {{-- Contenu onglet Facebook --}}
+                <div id="contenu-facebook" class="hidden">
+                    <form id="form-facebook" method="POST" action="{{ route('responsable.notifications.supprimer') }}">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="type" value="facebook">
+
+                        <div class="flex items-center justify-between bg-gray-50 border-b border-gray-100 px-5 py-2">
+                            <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                <input type="checkbox" id="selectall-facebook" onclick="toggleAll('facebook', this)"
+                                    class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                Tout sélectionner
+                            </label>
+                            <button type="submit" id="btn-delete-facebook" disabled
+                                onclick="return confirm('Supprimer les alertes Facebook sélectionnées ?');"
+                                class="flex items-center gap-1 text-xs bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 transition opacity-40 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                </svg>
+                                Supprimer (<span id="count-facebook">0</span>)
+                            </button>
+                        </div>
+
+                        @forelse($alertesFacebook as $alerte)
+                        <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-100
+                            {{ !$alerte->vue ? 'bg-blue-50 border-l-4 border-blue-400' : 'border-l-4 border-transparent' }}
+                            hover:bg-gray-50 transition">
+                            <input type="checkbox" name="ids[]" value="{{ $alerte->id }}" onchange="updateToolbar('facebook')"
+                                class="mt-2 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                            <div class="mt-1 w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
+                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Facebook</span>
+                                    @if(!$alerte->vue)
+                                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Nouveau</span>
+                                    @endif
+                                </div>
+                                <p class="text-sm font-semibold text-gray-800">
+                                    Commentaire non répondu de
+                                    <span class="text-blue-600">{{ $alerte->expediteur ?? 'Inconnu' }}</span>
+                                </p>
+                                @if($alerte->sujet)
+                                <p class="text-xs text-gray-500 mt-0.5">{{ $alerte->sujet }}</p>
+                                @endif
+                                <p class="text-xs text-gray-400 mt-1">
+                                    {{ \Carbon\Carbon::parse($alerte->detecte_a)->isoFormat('dddd D MMMM YYYY [à] H[h]mm') }}
+                                </p>
+                            </div>
+                            <a href="https://facebook.com" target="_blank"
+                                class="text-xs border border-gray-200 rounded-md px-3 py-1.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition">
+                                Ouvrir Facebook
+                            </a>
+                        </div>
+                        @empty
+                        <div class="px-5 py-12 text-center">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="#1877F2" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                            <p class="text-sm text-gray-500">Aucune alerte Facebook.</p>
+                        </div>
+                        @endforelse
+                    </form>
+                    <div class="p-4">{{ $alertesFacebook->links() }}</div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -460,7 +672,7 @@
 
 <script>
 function afficherOnglet(onglet) {
-    ['activites', 'gmail', 'whatsapp'].forEach(function(o) {
+    ['activites', 'gmail', 'whatsapp', 'messenger', 'facebook'].forEach(function(o) {
         document.getElementById('contenu-' + o).classList.add('hidden');
         var filtre = document.getElementById('filtre-' + o);
         if (filtre) filtre.classList.add('hidden');
@@ -513,7 +725,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var ongletActif = '{{ request('onglet', 'activites') }}';
     afficherOnglet(ongletActif);
 
-    ['activites', 'gmail', 'whatsapp'].forEach(function(type) {
+    ['activites', 'gmail', 'whatsapp', 'messenger', 'facebook'].forEach(function(type) {
         updateToolbar(type);
     });
 });

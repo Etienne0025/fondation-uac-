@@ -11,13 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withBroadcasting(
-    __DIR__.'/../routes/channels.php',
-    ['middleware' => ['web', 'auth']],
-)
+        __DIR__.'/../routes/channels.php',
+        ['middleware' => ['web', 'auth']],
+    )
     ->withMiddleware(function (Middleware $middleware) {
-         $middleware->validateCsrfTokens(except: [
-        'webhook/whatsapp',
-    ]);
+        $middleware->validateCsrfTokens(except: [
+            'webhook/facebook',
+            'webhook/whatsapp',
+        ]);
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {

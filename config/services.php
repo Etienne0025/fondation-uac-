@@ -55,5 +55,13 @@ return [
 ],
 
 
+'facebook' => [
+    'app_id' => env('FACEBOOK_APP_ID'),
+    'app_secret' => env('FACEBOOK_APP_SECRET'),
+    'verify_token' => env('FACEBOOK_VERIFY_TOKEN'),
+    'messenger_redirect' => env('MESSENGER_REDIRECT_URI'),
+    'facebook_redirect' => env('FACEBOOK_REDIRECT_URI'),
+],
+
 
 ];

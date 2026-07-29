@@ -1,31 +1,40 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-    </div>
+    <div class="max-w-md mx-auto">
 
-    @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
+        {{-- Icone --}}
+        <div class="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
         </div>
-    @endif
 
-    <div class="mt-4 flex items-center justify-between">
-        <form method="POST" action="{{ route('verification.send') }}">
-            @csrf
+        <h1 class="text-lg font-semibold text-gray-800 mb-1.5">Vérifie ton adresse e-mail</h1>
+        <p class="text-sm text-gray-500 mb-6">
+            Merci de t'être inscrit ! Avant de continuer, clique sur le lien qu'on vient de t'envoyer par e-mail pour confirmer ton adresse.
+            Tu ne l'as pas reçu ? On peut t'en renvoyer un.
+        </p>
 
-            <div>
-                <x-primary-button>
-                    {{ __('Resend Verification Email') }}
-                </x-primary-button>
-            </div>
-        </form>
+        @if (session('status') == 'verification-link-sent')
+        <div class="mb-5 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
+            Un nouveau lien de vérification a été envoyé à l'adresse indiquée lors de ton inscription.
+        </div>
+        @endif
 
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
+        <div class="flex items-center justify-between">
+            <form method="POST" action="{{ route('verification.send') }}">
+                @csrf
+                <button type="submit"
+                    class="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 transition">
+                    Renvoyer l'e-mail
+                </button>
+            </form>
 
-            <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
-                {{ __('Log Out') }}
-            </button>
-        </form>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="text-sm text-gray-500 hover:text-green-700 transition underline">
+                    Déconnexion
+                </button>
+            </form>
+        </div>
     </div>
 </x-guest-layout>

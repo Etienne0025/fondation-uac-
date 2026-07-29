@@ -17,15 +17,27 @@ class AdminController extends BaseActiviteController
 
     // ===== Gestion utilisateurs =====
 
-    public function indexUsers()
+    public function indexUsers(Request $request)
     {
-        $users = User::paginate(10);
+        $query = User::query();
+
+        if ($request->filled('role')) {
+            if ($request->role === 'staff') {
+                $query->whereIn('role', ['administrateur', 'responsable']);
+            } else {
+                $query->where('role', $request->role);
+            }
+        }
+
+        $users = $query->paginate(10)->withQueryString();
+
         $stats = [
             'total'    => User::count(),
             'actifs'   => User::where('active', true)->count(),
             'inactifs' => User::where('active', false)->count(),
             'admins'   => User::where('role', 'administrateur')->count(),
         ];
+
         return view('admin.users', compact('users', 'stats'));
     }
 
@@ -35,36 +47,50 @@ class AdminController extends BaseActiviteController
     }
 
     public function storeUser(Request $request)
-    {
-        $request->validate([
-            'nom'       => ['required', 'string', 'max:255'],
-            'prenom'    => ['required', 'string', 'max:255'],
-            'email'     => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'telephone' => ['required', 'string', 'max:20'],
-            'poste'     => ['required', 'string', 'max:255'],
-            'role'      => ['required', 'in:responsable,mentor,invite'],
-        ]);
+{
+    // 1. Validation (Ajout du rôle 'administrateur')
+    $request->validate([
+        'nom'       => ['required', 'string', 'max:255'],
+        'prenom'    => ['required', 'string', 'max:255'],
+        'email'     => ['required', 'string', 'email', 'max:255', 'unique:users'],
+        'telephone' => ['required', 'string', 'max:20'],
+        'poste'     => ['required_if:role,responsable', 'nullable', 'string', 'max:255'],
+        'role'      => ['required', 'in:responsable,administrateur,coach,stagiaire'],
+    ]);
 
-        $motDePasse = Str::random(10);
+    // 2. Génération du mot de passe
+    $motDePasse = Str::random(10);
+    $nomComplet = trim($request->prenom . ' ' . $request->nom);
 
-        $user = User::create([
-            'nom'       => $request->nom,
-            'prenom'    => $request->prenom,
-            'email'     => $request->email,
-            'telephone' => $request->telephone,
-            'poste'     => $request->poste,
-            'role'      => $request->role,
-            'active'    => true,
-            'password'  => Hash::make($motDePasse),
-        ]);
+    // 3. Création de l'utilisateur
+    $user = User::create([
+        'nom'       => $request->nom,
+        'prenom'    => $request->prenom,
+        'email'     => $request->email,
+        'telephone' => $request->telephone,
+        'poste'     => $request->poste,
+        'role'      => $request->role,
+        'active'    => true,
+        'password'  => Hash::make($motDePasse),
+    ]);
 
+    // 4. Envoi sécurisé de l'email
+    try {
         Mail::to($user->email)->send(
-            new NouvelUtilisateurMail($user->nom . ' ' . $user->prenom, $motDePasse, $user->email)
+            new NouvelUtilisateurMail($nomComplet, $motDePasse, $user->email)
         );
+        
+        return redirect()->route('admin.index')
+                         ->with('success', 'Compte créé et mot de passe envoyé avec succès à ' . $user->email);
+
+    } catch (\Exception $e) {
+        // Log l'erreur exacte dans storage/logs/laravel.log
+        \Log::error("Échec d'envoi du mail de bienvenue à {$user->email} : " . $e->getMessage());
 
         return redirect()->route('admin.index')
-                         ->with('success', 'Compte créé. Mot de passe envoyé à ' . $user->email);
+                         ->with('warning', 'Compte créé, mais l\'email n\'a pas pu être envoyé. Vérifiez les logs SMTP.');
     }
+}
 
     public function toggleStatus(User $user)
     {
