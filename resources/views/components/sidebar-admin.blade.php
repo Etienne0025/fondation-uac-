@@ -6,13 +6,29 @@
     $roleActif = request()->query('role');
 @endphp
 
-<aside class="w-60 bg-white border-r border-gray-200 flex flex-col">
-    <div class="p-5 border-b border-gray-200 flex items-center gap-3">
-        <img src="/image/logo-fuac.jpg" alt="Logo" class="h-10 w-auto object-contain">
-        <div>
-            <p class="font-semibold text-sm text-gray-800">Startup-Valley</p>
-            <p class="text-xs text-gray-400">Fondation UAC</p>
+{{-- Fond sombre mobile, visible uniquement quand le tiroir est ouvert --}}
+<div x-data x-show="$store.sidebar.open" x-transition.opacity x-cloak
+    @click="$store.sidebar.open = false"
+    class="fixed inset-0 bg-black/40 z-30 md:hidden"></div>
+
+<aside x-data
+    :class="$store.sidebar.open ? 'translate-x-0' : '-translate-x-full'"
+    class="fixed inset-y-0 left-0 z-40 w-60 bg-white border-r border-gray-200 flex flex-col transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:z-auto">
+
+    <div class="p-5 border-b border-gray-200 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <img src="/image/logo-fuac.jpg" alt="Logo" class="h-10 w-auto object-contain">
+            <div>
+                <p class="font-semibold text-sm text-gray-800">Startup-Valley</p>
+                <p class="text-xs text-gray-400">Fondation UAC</p>
+            </div>
         </div>
+        <button type="button" @click="$store.sidebar.open = false"
+            class="md:hidden p-1 text-gray-400 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
     </div>
 
     <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto">

@@ -154,5 +154,33 @@ Route::withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)->group(fun
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::post('/planification/observation', [PlanificationController::class, 'updateObservation'])->name('planification.observation');
+   Route::post('/planification/discussion', [PlanificationController::class, 'storeDiscussionMessage'])->name('planification.discussion');
 });
+
+// A ajouter dans routes/web.php, a l'interieur du groupe Route::middleware(['auth'])
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/push/subscribe', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'endpoint' => 'required|string',
+            'keys.p256dh' => 'required|string',
+            'keys.auth' => 'required|string',
+        ]);
+
+        $request->user()->updatePushSubscription(
+            $request->endpoint,
+            $request->keys['p256dh'],
+            $request->keys['auth']
+        );
+
+        return response()->json(['success' => true]);
+    })->name('push.subscribe');
+
+    Route::post('/push/unsubscribe', function (\Illuminate\Http\Request $request) {
+        $request->user()->deletePushSubscription($request->endpoint);
+        return response()->json(['success' => true]);
+    })->name('push.unsubscribe');
+});
+
+Route::post('/notifications/{notification}/arreter', [NotificationRappelController::class, 'arreter'])->name('notifications.arreter');
+Route::post('/notifications/{notification}/rappeler', [NotificationRappelController::class, 'relancer'])->name('notifications.relancer');

@@ -1,4 +1,4 @@
-@if(auth()->user()->role === 'administrateur')
+@if(auth()->user()->role === 'Administrateur')
     <x-sidebar-admin />
 @else
 
@@ -8,14 +8,30 @@
     })->where('envoye', true)->where('vue', false)->count();
 @endphp
 
-<aside class="w-64 bg-white border-r border-gray-200 flex flex-col justify-between">
-     <div class="p-5 border-b border-gray-200 flex items-center gap-3">
-        <img src="/image/logo-fuac.jpg" alt="Logo" class="h-10 w-auto object-contain">
-        <div>
-            <p class="font-semibold text-sm text-gray-800">Startup-Valley</p>
-            <p class="text-xs text-gray-400">Fondation UAC</p>
+<div x-data x-show="$store.sidebar.open" x-transition.opacity x-cloak
+    @click="$store.sidebar.open = false"
+    class="fixed inset-0 bg-black/40 z-30 md:hidden"></div>
+
+<aside x-data
+    :class="$store.sidebar.open ? 'translate-x-0' : '-translate-x-full'"
+    class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:z-auto">
+
+     <div class="p-5 border-b border-gray-200 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <img src="/image/logo-fuac.jpg" alt="Logo" class="h-10 w-auto object-contain">
+            <div>
+                <p class="font-semibold text-sm text-gray-800">Startup-Valley</p>
+                <p class="text-xs text-gray-400">Fondation UAC</p>
+            </div>
         </div>
+        <button type="button" @click="$store.sidebar.open = false"
+            class="md:hidden p-1 text-gray-400 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
     </div>
+
  <nav class="mt-4 flex-1 overflow-y-auto">
 
 <p class="text-[10px] uppercase font-semibold text-gray-400 px-3 pt-4 pb-1 tracking-widest">Principal</p>
@@ -68,6 +84,17 @@
             </svg>
             Mon profil
         </a>
+
+        {{-- Activation des notifications push du navigateur/PC.
+             Le bouton se masque automatiquement une fois l'abonnement créé
+             (voir resources/js/push-notifications.js). --}}
+        <button type="button" id="activer-push-btn"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            Activer les notifications PC
+        </button>
     </nav>
 
     <div class="p-4 border-t border-gray-200">

@@ -5,7 +5,10 @@
 
     <div class="flex-1 flex flex-col overflow-hidden">
         <header class="h-14 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
-            <h1 class="text-lg font-semibold text-gray-800">Notifications</h1>
+            <div class="flex items-center">
+    <x-mobile-menu-button />
+    <h1 class="text-lg font-semibold text-gray-800">Notifications</h1>
+</div>
             <div class="flex items-center gap-4">
                 <span class="text-xs text-gray-400">{{ now()->isoFormat('dddd D MMMM YYYY') }}</span>
                 <div class="flex items-center gap-2 bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-full">

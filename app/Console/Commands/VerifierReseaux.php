@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\ReseauSocial;
 use App\Models\AlerteReseau;
+use App\Models\User;
+use App\Notifications\AlerteWebPush;
 use App\Http\Controllers\ReseauSocialController;
 use Illuminate\Console\Command;
 use Carbon\Carbon;
@@ -19,14 +21,12 @@ class VerifierReseaux extends Command
         $ctrl = new ReseauSocialController();
 
         foreach ($reseaux as $reseau) {
-            // Conversion délai en minutes
-           $intervalleMinutes = match($reseau->delai_unite ?? 'minutes') {
-    'heures' => ($reseau->delai_alerte ?? 15) * 60,
-    'jours'  => ($reseau->delai_alerte ?? 15) * 60 * 24,
-    default  => $reseau->delai_alerte ?? 15,
-};
+            $intervalleMinutes = match($reseau->delai_unite ?? 'minutes') {
+                'heures' => ($reseau->delai_alerte ?? 15) * 60,
+                'jours'  => ($reseau->delai_alerte ?? 15) * 60 * 24,
+                default  => $reseau->delai_alerte ?? 15,
+            };
 
-            // Vérifier si le temps est écoulé
             $dernierCheck = $reseau->derniere_verification ? Carbon::parse($reseau->derniere_verification) : Carbon::now()->subMinutes($intervalleMinutes + 1);
 
             if ($dernierCheck->addMinutes($intervalleMinutes)->isPast()) {
@@ -44,9 +44,18 @@ class VerifierReseaux extends Command
                             'vue' => false,
                             'detecte_a' => now(),
                         ]);
+
+                        // Envoi de la notification push (fonctionne meme si l'utilisateur est hors ligne)
+                        $utilisateur = User::find($reseau->user_id);
+                        if ($utilisateur) {
+                            $utilisateur->notify(new AlerteWebPush(
+                                strtoupper($reseau->nomcompte) . ' - Nouveau message',
+                                'De: ' . $message['expediteur'],
+                                '/responsable/notifications'
+                            ));
+                        }
                     }
                 }
-                // Mise à jour de la date de vérification
                 $reseau->update(['derniere_verification' => now()]);
             }
         }

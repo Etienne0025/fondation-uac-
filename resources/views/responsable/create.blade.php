@@ -149,7 +149,11 @@
                             class="text-xs text-green-700 font-medium hover:underline">+ Ajouter un rappel</button>
                     </div>
 
-                    {{-- Alertes après --}}
+                    {{--
+                        Alertes après — DÉSACTIVÉES TEMPORAIREMENT (envoi coupé côté EnvoyerNotifications.php).
+                        Section masquée pour ne pas laisser l'utilisateur configurer une alerte qui ne partira pas.
+                        Pour réactiver : sortir ce bloc du commentaire Blade ci-dessous.
+
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Alerter si l'événement n'est pas marqué comme fait
@@ -190,6 +194,7 @@
                         <button type="button" onclick="ajouterAlerte()"
                             class="text-xs text-amber-700 font-medium hover:underline">+ Ajouter une alerte</button>
                     </div>
+                    --}}
 
                     {{-- Boutons --}}
                     <div class="flex gap-3">
@@ -271,15 +276,6 @@ function getOptionsAvant() {
     `;
 }
 
-function getOptionsUnite(suffixe) {
-    return `
-        <option value="secondes">Seconde(s) ${suffixe}</option>
-        <option value="minutes">Minute(s) ${suffixe}</option>
-        <option value="heures" selected>Heure(s) ${suffixe}</option>
-        <option value="jours">Jour(s) ${suffixe}</option>
-    `;
-}
-
 function ajouterRappel() {
     const container = document.getElementById('rappels-avant-container');
     const div = document.createElement('div');
@@ -295,6 +291,19 @@ function ajouterRappel() {
             class="text-red-500 hover:text-red-700 px-2">✕</button>
     `;
     container.appendChild(div);
+}
+
+/*
+    ajouterAlerte() désactivée temporairement avec la section "Alertes après" ci-dessus.
+    Pour réactiver, sortir la fonction et son bouton du commentaire.
+
+function getOptionsUnite(suffixe) {
+    return `
+        <option value="secondes">Seconde(s) ${suffixe}</option>
+        <option value="minutes">Minute(s) ${suffixe}</option>
+        <option value="heures" selected>Heure(s) ${suffixe}</option>
+        <option value="jours">Jour(s) ${suffixe}</option>
+    `;
 }
 
 function ajouterAlerte() {
@@ -325,6 +334,7 @@ function ajouterAlerte() {
     `;
     container.appendChild(div);
 }
+*/
 </script>
 
 </x-app-layout>

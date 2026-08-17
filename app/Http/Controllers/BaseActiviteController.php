@@ -356,6 +356,63 @@ class BaseActiviteController extends Controller
         return back()->with('success', 'Toutes les notifications marquées comme lues.');
     }
 
+    /**
+     * Bouton "ne plus rappeler" : stoppe définitivement la répétition du rappel.
+     * La notification elle-même reste inchangée (déjà envoyée), seule la
+     * répétition future est désactivée — aucune nouvelle notification ne sera créée.
+     */
+    public function arreterRappel(Notification $notification)
+    {
+        $activite = $notification->activite;
+
+        abort_if(
+            $activite->user_id !== auth()->id() && $activite->acces?->droitacces !== 'public',
+            403
+        );
+
+        $notification->update(['repetition_active' => false]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Bouton "rappeler" : programme un nouveau rappel dans 5 minutes,
+     * tant que cette prochaine échéance reste avant le début de l'activité.
+     * Une nouvelle ligne Notification est créée (même logique que pour les
+     * alertes dans EnvoyerNotifications), la ligne cliquée reste "envoye = true".
+     */
+    public function relancerRappel(Notification $notification)
+    {
+        $activite = $notification->activite;
+
+        abort_if(
+            $activite->user_id !== auth()->id() && $activite->acces?->droitacces !== 'public',
+            403
+        );
+
+        if (now()->gte($activite->date)) {
+            return response()->json(['success' => false, 'message' => 'Activité déjà démarrée'], 422);
+        }
+
+        $prochaineDate = now()->addMinutes(5);
+
+        if ($prochaineDate->gte($activite->date)) {
+            return response()->json(['success' => false, 'message' => "Trop proche du début de l'activité"], 422);
+        }
+
+        Notification::create([
+            'activite_id'        => $activite->id,
+            'type'               => 'rappel',
+            'dateenvoi'          => $prochaineDate,
+            'envoye'             => false,
+            'intervalle_valeur'  => 5,
+            'intervalle_unite'   => 'minutes',
+            'repetition_active'  => true,
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     // Retourne le préfixe de route selon le rôle
     protected function routePrefix(): string
     {

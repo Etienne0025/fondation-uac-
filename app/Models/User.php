@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, HasPushSubscriptions;
 
     /**
      * The attributes that are mass assignable.
@@ -65,9 +66,4 @@ class User extends Authenticatable
         return $this->belongsToMany(AccesActivite::class, 'acces_activite_utilisateur', 'user_id', 'acces_activite_id')
                      ->withTimestamps();
     }
-   
-public function setRoleAttribute($value)
-{
-    $this->attributes['role'] = strtolower(trim($value));
-}
 }

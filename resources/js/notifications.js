@@ -1,4 +1,6 @@
 // Demander permission notifications navigateur
+// (toujours nécessaire : c'est cette permission qui autorise aussi les vraies
+// notifications push envoyées via le service worker)
 if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
 }
@@ -10,10 +12,27 @@ if ('serviceWorker' in navigator) {
         .catch(err => console.error('Erreur Service Worker:', err));
 }
 
-// Afficher bannière en haut à droite
-window.afficherBanniere = function(titre, message, type) {
+// Notifications en attente d'acquittement (pas encore cliquees sur OK)
+let notificationsEnAttente = [];
+
+function idUnique(prefixe, id) {
+    return prefixe + '-' + id;
+}
+
+// Affiche une banniere persistante (dans la page) avec un bouton OK.
+// La vraie notification systeme (OS/navigateur) n'est plus déclenchée ici :
+// elle est envoyée par le serveur via WebPush (voir RappelActiviteNotification
+// + public/sw.js), ce qui permet d'avoir le titre/date corrects et les boutons
+// "ne plus rappeler" / "rappeler". Ce fichier ne gère que l'affichage in-page.
+// idNotif : identifiant unique (ex: 'notif-12' ou 'alerte-7'), utilise pour eviter les doublons et gerer l'acquittement
+window.afficherBanniere = function(titre, message, type, idNotif = null) {
     const couleur = type === 'rappel' ? '#15803d' : '#dc2626';
     const icone   = type === 'rappel' ? '🔔' : '⚠️';
+
+    // Evite d'empiler deux fois la meme banniere si elle est deja affichee a l'ecran
+    if (idNotif && document.querySelector(`[data-notif-id="${idNotif}"]`)) {
+        return;
+    }
 
     if (!document.getElementById('banniere-style')) {
         const style = document.createElement('style');
@@ -28,6 +47,7 @@ window.afficherBanniere = function(titre, message, type) {
     }
 
     const banniere = document.createElement('div');
+    if (idNotif) banniere.dataset.notifId = idNotif;
     banniere.style.cssText = `
         position: fixed;
         top: 20px;
@@ -50,33 +70,28 @@ window.afficherBanniere = function(titre, message, type) {
         <div style="flex:1">
             <p style="font-weight:600;font-size:14px;margin:0">${titre}</p>
             <p style="font-size:12px;opacity:0.9;margin:4px 0 0">${message}</p>
+            <button class="banniere-ok-btn" style="margin-top:10px;background:rgba(255,255,255,0.2);border:none;color:white;font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer">
+                OK
+            </button>
         </div>
-        <button onclick="this.parentElement.remove()"
-            style="background:none;border:none;color:white;font-size:18px;cursor:pointer;opacity:0.7;padding:0;margin-left:8px">
-            ✕
-        </button>
     `;
     document.body.appendChild(banniere);
 
-    // Notification navigateur
-    if (Notification.permission === 'granted') {
-        new Notification(titre, {
-            body: message,
-            icon: '/image/logo-fuac.jpg',
-        });
-    }
+    // Clic sur OK : ferme la banniere ET l'acquitte (elle ne reviendra plus)
+    banniere.querySelector('.banniere-ok-btn').addEventListener('click', () => {
+        banniere.style.transition = 'opacity 0.3s';
+        banniere.style.opacity = '0';
+        setTimeout(() => banniere.remove(), 300);
 
-    // Disparaître après 6 secondes
-    setTimeout(() => {
-        if (banniere.parentElement) {
-            banniere.style.transition = 'opacity 0.5s';
-            banniere.style.opacity = '0';
-            setTimeout(() => banniere.remove(), 500);
+        if (idNotif) {
+            notificationsEnAttente = notificationsEnAttente.filter(n => n.idNotif !== idNotif);
         }
-    }, 6000);
+    });
+
+    // PAS de disparition automatique : la banniere reste tant que l'utilisateur ne clique pas OK
 }
 
-// Mettre à jour le badge (dropdown + sidebar) et le dropdown
+// Mettre à jour le badge et le dropdown
 function mettreAJourBadge(notifications) {
     const badge    = document.getElementById('notif-badge');
     const liste    = document.getElementById('notif-liste');
@@ -84,7 +99,6 @@ function mettreAJourBadge(notifications) {
 
     const count = notifications.length;
 
-    // Badge du sidebar (toutes notifications confondues : activites + reseaux)
     if (badgeSidebar) {
         if (count > 0) {
             badgeSidebar.textContent = count > 99 ? '99+' : count;
@@ -96,7 +110,6 @@ function mettreAJourBadge(notifications) {
 
     if (!badge || !liste) return;
 
-    // Badge du dropdown (menu cloche)
     if (count > 0) {
         badge.textContent = count > 99 ? '99+' : count;
         badge.classList.remove('hidden');
@@ -104,7 +117,6 @@ function mettreAJourBadge(notifications) {
         badge.classList.add('hidden');
     }
 
-    // Liste dropdown
     if (count === 0) {
         liste.innerHTML = `
             <div class="px-4 py-8 text-center text-sm text-gray-400">
@@ -157,9 +169,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Stock notifications non lues (accumule entre chaque sondage)
-let notificationsNonLues = [];
-
 // Marquer toutes comme lues
 window.marquerToutesLues = async function() {
     await fetch('/notifications/lire', {
@@ -170,8 +179,10 @@ window.marquerToutesLues = async function() {
         }
     });
 
-    // Vide le tableau local, sinon le prochain sondage rafficherait les anciennes
-    notificationsNonLues = [];
+    notificationsEnAttente = [];
+
+    // Ferme aussi toutes les bannieres actuellement affichees a l'ecran
+    document.querySelectorAll('[data-notif-id]').forEach(b => b.remove());
 
     const badge = document.getElementById('notif-badge');
     const liste = document.getElementById('notif-liste');
@@ -200,31 +211,35 @@ async function verifierNotifications() {
         const data = await response.json();
         let nouvelles = false;
 
-        // Gestion Activités
         if (data.activites && data.activites.length > 0) {
             data.activites.forEach(notif => {
-                window.afficherBanniere(notif.activite.titre, 'Rappel activité', notif.type);
+                const id = idUnique('notif', notif.id);
+                const dateActivite = notif.activite.date
+                    ? new Date(notif.activite.date).toLocaleString('fr-FR', {
+                          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })
+                    : '';
+                const message = dateActivite ? `Prévu le ${dateActivite}` : 'Rappel activité';
+                window.afficherBanniere(notif.activite.titre, message, notif.type, id);
                 notificationsNonLues.push(notif);
+                notificationsEnAttente.push({ idNotif: id, titre: notif.activite.titre, message, type: notif.type });
             });
             nouvelles = true;
-            // Recharger la liste si nécessaire
             if (typeof rafraichirListe === 'function') rafraichirListe();
         }
 
-        // Gestion Réseaux Sociaux (nouveau système)
         if (data.reseaux && data.reseaux.length > 0) {
             data.reseaux.forEach(alerte => {
-                window.afficherBanniere(
-                    alerte.type.toUpperCase() + ' - Nouveau message',
-                    'De: ' + alerte.expediteur,
-                    'alerte'
-                );
+                const id = idUnique('alerte', alerte.id);
+                const titre = alerte.type.toUpperCase() + ' - Nouveau message';
+                const message = 'De: ' + alerte.expediteur;
+                window.afficherBanniere(titre, message, 'alerte', id);
                 notificationsNonLues.push(alerte);
+                notificationsEnAttente.push({ idNotif: id, titre, message, type: 'alerte' });
             });
             nouvelles = true;
         }
 
-        // Met a jour le badge et le dropdown uniquement s'il y a du nouveau
         if (nouvelles) {
             mettreAJourBadge(notificationsNonLues);
         }
@@ -233,8 +248,18 @@ async function verifierNotifications() {
     }
 }
 
+// Stock notifications non lues (accumule entre chaque sondage, pour le badge/dropdown)
+let notificationsNonLues = [];
+
 // Lancer le polling
 setInterval(verifierNotifications, 10000);
+
+// Reaffiche toutes les 5 minutes les notifications non acquittees (bouton OK jamais clique)
+setInterval(() => {
+    notificationsEnAttente.forEach(notif => {
+        window.afficherBanniere(notif.titre, notif.message, notif.type, notif.idNotif);
+    });
+}, 5 * 60 * 1000);
 
 // Fonction de suppression multiple via formulaire
 window.supprimerSelectionnes = async function(formElement) {
@@ -246,6 +271,6 @@ window.supprimerSelectionnes = async function(formElement) {
     });
 
     if (response.ok) {
-        location.reload(); // Recharger pour nettoyer l'interface
+        location.reload();
     }
 };

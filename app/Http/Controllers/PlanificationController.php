@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activite;
-use App\Models\PlanificationObservation;
+use App\Models\PlanificationDiscussion;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,16 +19,14 @@ class PlanificationController extends Controller
         // Administrateur et responsable voient tout le monde ; coach et stagiaire ne voient que leur propre ligne.
         $accesComplet = in_array($utilisateur->role, ['administrateur', 'responsable']);
 
-        // Seul l'administrateur peut ecrire dans la colonne "Observation de l'administrateur".
-        $peutEditerAdmin = $utilisateur->role === 'administrateur';
-
         $dateReference = $request->filled('semaine')
             ? Carbon::parse($request->input('semaine'))
             : Carbon::now();
 
         $lundi = $dateReference->copy()->startOfWeek(Carbon::MONDAY);
 
-        $jours = collect(range(0, 4))->map(function ($i) use ($lundi) {
+        // Semaine complete : Lundi (0) a Dimanche (6)
+        $jours = collect(range(0, 6))->map(function ($i) use ($lundi) {
             return $lundi->copy()->addDays($i);
         });
 
@@ -51,14 +49,14 @@ class PlanificationController extends Controller
 
             $membres = $query->orderBy('nom')->orderBy('prenom')->get();
         } else {
-            // Coach / stagiaire : uniquement sa propre ligne, aucun filtre de role applicable.
+            // Coach / stagiaire : uniquement sa propre ligne.
             $roleFiltre = null;
             $titre = 'Ma planification';
             $membres = User::where('id', $utilisateur->id)->get();
         }
 
         $debutSemaine = $lundi->copy()->startOfDay();
-        $finSemaine   = $lundi->copy()->addDays(4)->endOfDay();
+        $finSemaine   = $lundi->copy()->addDays(6)->endOfDay();
 
         $activites = Activite::whereBetween('date', [$debutSemaine, $finSemaine])
             ->whereIn('user_id', $membres->pluck('id'))
@@ -66,7 +64,7 @@ class PlanificationController extends Controller
 
         $planning = [];
         foreach ($membres as $membre) {
-            foreach (range(0, 4) as $i) {
+            foreach (range(0, 6) as $i) {
                 $planning[$membre->id][$i] = ['matin' => [], 'soir' => []];
             }
         }
@@ -75,7 +73,7 @@ class PlanificationController extends Controller
             $date = Carbon::parse($activite->date);
             $jourIndex = $lundi->diffInDays($date->copy()->startOfDay());
 
-            if ($jourIndex < 0 || $jourIndex > 4) {
+            if ($jourIndex < 0 || $jourIndex > 6) {
                 continue;
             }
 
@@ -83,50 +81,46 @@ class PlanificationController extends Controller
             $planning[$activite->user_id][$jourIndex][$creneau][] = $activite;
         }
 
-        $observations = PlanificationObservation::where('semaine_debut', $lundi->toDateString())
-            ->whereIn('user_id', $membres->pluck('id'))
+        // Discussion (une seule, partagee) par membre pour la semaine affichee.
+        $discussions = PlanificationDiscussion::with('auteur')
+            ->where('semaine_debut', $lundi->toDateString())
+            ->whereIn('membre_id', $membres->pluck('id'))
+            ->orderBy('created_at')
             ->get()
-            ->keyBy('user_id');
+            ->groupBy('membre_id');
 
         return view('admin.planification.index', compact(
             'membres', 'jours', 'planning', 'lundi', 'titre', 'roleFiltre',
-            'observations', 'accesComplet', 'peutEditerAdmin'
+            'discussions', 'accesComplet'
         ));
     }
 
-    public function updateObservation(Request $request)
+    public function storeDiscussionMessage(Request $request)
     {
         $utilisateur = auth()->user();
 
         abort_if(!in_array($utilisateur->role, ['administrateur', 'responsable', 'coach', 'stagiaire']), 403);
 
         $request->validate([
-            'user_id'       => ['required', 'integer', 'exists:users,id'],
+            'membre_id'     => ['required', 'integer', 'exists:users,id'],
             'semaine_debut' => ['required', 'date'],
-            'champ'         => ['required', 'in:admin,personnelle'],
-            'valeur'        => ['nullable', 'string', 'max:2000'],
+            'message'       => ['required', 'string', 'max:2000'],
         ]);
 
-        if ($request->champ === 'admin') {
-            // Seul l'administrateur peut ecrire l'observation admin, pour n'importe quel membre.
-            abort_if($utilisateur->role !== 'administrateur', 403);
-        } else {
-            // L'observation personnelle ne peut etre modifiee que par son proprietaire.
-            abort_if((int) $request->user_id !== $utilisateur->id, 403);
-        }
+        $accesComplet = in_array($utilisateur->role, ['administrateur', 'responsable']);
+        $estSaLigne   = (int) $request->membre_id === $utilisateur->id;
 
-        $champColonne = $request->champ === 'admin' ? 'observation_admin' : 'observation_personnelle';
+        // Administrateur et responsable peuvent commenter n'importe quelle ligne ;
+        // les autres ne peuvent commenter que la leur.
+        abort_if(!$accesComplet && !$estSaLigne, 403);
 
-        PlanificationObservation::updateOrCreate(
-            [
-                'user_id'       => $request->user_id,
-                'semaine_debut' => $request->semaine_debut,
-            ],
-            [
-                $champColonne => $request->valeur,
-            ]
-        );
+        PlanificationDiscussion::create([
+            'membre_id'     => $request->membre_id,
+            'user_id'       => $utilisateur->id,
+            'semaine_debut' => $request->semaine_debut,
+            'message'       => $request->message,
+        ]);
 
-        return back()->with('success', 'Observation enregistrée.');
+        return back()->with('success', 'Message ajouté à la discussion.');
     }
 }
