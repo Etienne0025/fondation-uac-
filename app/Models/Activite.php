@@ -8,8 +8,8 @@ class Activite extends Model
 {
     protected $fillable = [
         'user_id', 'titre', 'description',
-        'date', 'lieu', 'statut',
-        'rappels_avant', 'alertes_apres', // ← manquait ici
+        'date', 'lieu',
+        'rappels_avant', 'alertes_apres',
     ];
 
     protected $casts = [
@@ -17,6 +17,15 @@ class Activite extends Model
         'rappels_avant'  => 'array',
         'alertes_apres'  => 'array',
     ];
+
+    /**
+     * Statut calculé dynamiquement : plus de colonne 'statut' en base.
+     * 'en_attente' si l'activité est à venir, 'passee' si sa date est dépassée.
+     */
+    public function getStatutAttribute(): string
+    {
+        return now()->lt($this->date) ? 'en_attente' : 'passee';
+    }
 
     public function notifications()
     {

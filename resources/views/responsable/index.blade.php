@@ -28,7 +28,7 @@
             @endif
 
             {{-- Stats --}}
-            <div class="grid grid-cols-4 gap-3 mb-4">
+            <div class="grid grid-cols-2 gap-3 mb-4">
                 <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
                     <div class="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -49,28 +49,6 @@
                     <div>
                         <p class="text-xl font-semibold text-gray-800">{{ $stats['en_attente'] }}</p>
                         <p class="text-xs text-gray-400">En attente</p>
-                    </div>
-                </div>
-                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $stats['valide'] }}</p>
-                        <p class="text-xs text-gray-400">Validées</p>
-                    </div>
-                </div>
-                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $stats['rate'] }}</p>
-                        <p class="text-xs text-gray-400">Ratées</p>
                     </div>
                 </div>
             </div>
@@ -107,8 +85,7 @@
                             class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm focus:ring-green-600 focus:border-green-600 outline-none bg-white">
                             <option value="">Tous les statuts</option>
                             <option value="en_attente" {{ request('statut') == 'en_attente' ? 'selected' : '' }}>En attente</option>
-                            <option value="valide"     {{ request('statut') == 'valide'     ? 'selected' : '' }}>Validée</option>
-                            <option value="rate"       {{ request('statut') == 'rate'       ? 'selected' : '' }}>Ratée</option>
+                            <option value="passee"     {{ request('statut') == 'passee'     ? 'selected' : '' }}>Passée</option>
                         </select>
                     </div>
                 </div>
@@ -182,8 +159,7 @@
                         @php
                             $statutColors = [
                                 'en_attente' => 'bg-amber-100 text-amber-700',
-                                'valide'     => 'bg-green-100 text-green-700',
-                                'rate'       => 'bg-red-100 text-red-700',
+                                'passee'     => 'bg-gray-100 text-gray-600',
                             ];
                             $accesColors = [
                                 'public'    => 'bg-blue-100 text-blue-700',
@@ -220,23 +196,8 @@
                             <td class="py-3">
                                 <div class="flex gap-2 flex-wrap">
                                     @if($mEstProprietaire)
-                                        {{-- Bouton Fait --}}
-                                        @if($activite->statut !== 'valide')
-                                        <form action="{{ route($prefixe . '.valider', $activite) }}" method="POST">
-                                            @csrf @method('PATCH')
-                                            <button type="submit"
-                                                class="text-xs border border-green-200 rounded-md px-3 py-1.5 text-green-600
-                                                       hover:bg-green-50 transition flex items-center gap-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                                </svg>
-                                                Fait
-                                            </button>
-                                        </form>
-                                        @endif
-
-                                        {{-- Bouton Modifier --}}
-                                        @if($activite->statut !== 'valide')
+                                        {{-- Bouton Modifier : seulement si l'activité n'est pas encore passée --}}
+                                        @if($activite->statut !== 'passee')
                                         <a href="{{ route($prefixe . '.edit', $activite) }}"
                                             class="text-xs border border-gray-200 rounded-md px-3 py-1.5 text-gray-500
                                                    hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition">

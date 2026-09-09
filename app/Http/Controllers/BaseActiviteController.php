@@ -42,25 +42,39 @@ class BaseActiviteController extends Controller
             $query->whereDate('date', '<=', $request->date_fin);
         }
 
+        // Le statut n'est plus une colonne en base : on filtre directement sur la date
         if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
+            if ($request->statut === 'en_attente') {
+                $query->where('date', '>', now());
+            } elseif ($request->statut === 'passee') {
+                $query->where('date', '<=', now());
+            }
         }
 
         $activites = $query->latest('date')->paginate(10)->withQueryString();
 
+        // Même filtre de visibilité que la liste ci-dessus, correctement parenthésé
+        // (le bug précédent : ->orWhereHas() non englobé faisait que le AND ->where('date', ...)
+        // ne s'appliquait qu'à la branche "public", pas à la branche "user_id" — du coup
+        // toutes tes propres activités passées étaient comptées comme "en attente")
+        $baseStatsQuery = function () use ($userId) {
+            return Activite::where(function($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->orWhereHas('acces', function($q2) use ($userId) {
+                      $q2->where('droitacces', 'public')
+                         ->orWhere(function($q3) use ($userId) {
+                             $q3->where('droitacces', 'restreint')
+                                ->whereHas('membres', function($q4) use ($userId) {
+                                    $q4->where('users.id', $userId);
+                                });
+                         });
+                  });
+            });
+        };
+
         $stats = [
-            'total'      => Activite::where('user_id', $userId)->orwhereHas('acces', function($q) {
-                $q->where('droitacces', 'public');
-            })->count(),
-            'en_attente' => Activite::where('user_id', $userId)->where('statut', 'en_attente')->orwhereHas('acces', function($q) {
-                $q->where('droitacces', 'public')->where('statut', 'en_attente');
-            })->count(),
-            'valide'     => Activite::where('user_id', $userId)->where('statut', 'valide')->orwhereHas('acces', function($q) {
-                $q->where('droitacces', 'public')->where('statut', 'valide');
-            })->count(),
-            'rate'       => Activite::where('user_id', $userId)->where('statut', 'rate')->orwhereHas('acces', function($q) {
-                $q->where('droitacces', 'public')->where('statut', 'rate');
-            })->count(),
+            'total'      => $baseStatsQuery()->count(),
+            'en_attente' => $baseStatsQuery()->where('date', '>', now())->count(),
         ];
 
         return view($this->viewPrefix . '.index', compact('activites', 'stats'));
@@ -124,7 +138,6 @@ class BaseActiviteController extends Controller
             'description'    => $request->description,
             'date'           => $request->date,
             'lieu'           => $request->lieu,
-            'statut'         => 'en_attente',
             'rappels_avant'  => $rappelsAvant,
             'alertes_apres'  => $alertesApres,
         ]);
@@ -156,6 +169,15 @@ class BaseActiviteController extends Controller
                 'repetition_active'  => true,
             ]);
         }
+
+        // Notification "début" : se déclenche pile à l'heure de l'activité,
+        // indépendamment des rappels_avant/alertes_apres configurés par l'utilisateur.
+        $activite->notifications()->create([
+            'type'              => 'debut',
+            'dateenvoi'         => $dateEvenement,
+            'envoye'            => false,
+            'repetition_active' => false,
+        ]);
 
         return redirect()->route($this->routePrefix() . '.index')
                          ->with('success', 'Activité créée avec succès.');
@@ -239,6 +261,9 @@ class BaseActiviteController extends Controller
             $acces->membres()->sync([]);
         }
 
+        // Supprime toutes les notifications programmées non encore envoyées
+        // (rappels, alertes ET l'ancienne notification "debut"), pour les
+        // reconstruire avec la date éventuellement mise à jour.
         $activite->notifications()->where('envoye', false)->delete();
 
         $dateEvenement = \Carbon\Carbon::parse($request->date);
@@ -263,6 +288,14 @@ class BaseActiviteController extends Controller
             ]);
         }
 
+        // Notification "début", reprogrammée sur la nouvelle date de l'activité.
+        $activite->notifications()->create([
+            'type'              => 'debut',
+            'dateenvoi'         => $dateEvenement,
+            'envoye'            => false,
+            'repetition_active' => false,
+        ]);
+
         return redirect()->route($this->routePrefix() . '.index')
                          ->with('success', 'Activité mise à jour.');
     }
@@ -272,20 +305,6 @@ class BaseActiviteController extends Controller
         abort_if($activite->user_id !== auth()->id(), 403);
         $activite->delete();
         return back()->with('success', 'Activité supprimée.');
-    }
-
-    public function valider(Activite $activite)
-    {
-        abort_if($activite->user_id !== auth()->id(), 403);
-
-        $activite->update(['statut' => 'valide']);
-
-        $activite->notifications()
-                 ->where('type', 'alerte')
-                 ->where('envoye', false)
-                 ->update(['envoye' => true, 'repetition_active' => false]);
-
-        return back()->with('success', 'Activité marquée comme faite.');
     }
 
     public function notifications(Request $request)

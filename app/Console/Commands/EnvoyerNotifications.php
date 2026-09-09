@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Mail;
 class EnvoyerNotifications extends Command
 {
     protected $signature = 'notifications:envoyer';
-    protected $description = 'Envoie les notifications de rappel et d\'alerte pour les activités';
+    protected $description = 'Envoie les notifications de rappel, de début et d\'alerte pour les activités';
 
     public function handle()
     {
@@ -66,13 +66,24 @@ class EnvoyerNotifications extends Command
                     }
 
                 } else {
-                    // Activité déjà validée entretemps — pas de rappel
+                    // Activité déjà passée entretemps (statut recalculé selon la date) — pas de rappel
                     $notification->update([
                         'envoye'            => true,
                         'repetition_active' => false,
                     ]);
-                    $this->info("Activité validée, rappel annulé : {$activite->titre}");
+                    $this->info("Activité déjà passée, rappel annulé : {$activite->titre}");
                 }
+            }
+
+            // Notification "début" : se déclenche pile à l'heure de l'activité.
+            // Pas de condition sur le statut — elle a été programmée précisément
+            // pour dateenvoi == date de l'activité, donc elle part telle quelle,
+            // et n'est jamais répétée (repetition_active toujours false pour ce type).
+            if ($notification->type === 'debut') {
+                $user->notify(new \App\Notifications\DebutActiviteNotification($activite, $notification->id));
+                $this->info("Notification de début envoyée (push) : {$activite->titre}");
+
+                $notification->update(['envoye' => true]);
             }
 
             if ($notification->type === 'alerte') {

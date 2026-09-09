@@ -68,7 +68,7 @@ Route::middleware(['auth'])->prefix('responsable')->name('responsable.')->group(
     Route::get('/activites/{activite}/edit',      [ResponsableController::class, 'edit'])             ->name('edit');
     Route::patch('/activites/{activite}',         [ResponsableController::class, 'update'])           ->name('update');
     Route::delete('/activites/{activite}',        [ResponsableController::class, 'destroy'])          ->name('destroy');
-    Route::patch('/activites/{activite}/valider', [ResponsableController::class, 'valider'])          ->name('valider');
+    
     Route::get('/notifications',                  [ResponsableController::class, 'notifications'])    ->name('notifications');
     Route::post('/notifications/{notification}/lire', [ResponsableController::class, 'marquerLue'])   ->name('notifications.lire');
     Route::post('/notifications/lire-tout',       [ResponsableController::class, 'marquerToutesLues'])->name('notifications.lire.tout');
