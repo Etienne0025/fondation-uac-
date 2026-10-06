@@ -18,7 +18,7 @@
             </a>
 
             <p class="text-[10px] uppercase font-semibold text-gray-400 px-3 pt-4 pb-1 tracking-widest">Utilisateurs</p>
-            <a href="{{ route('admin.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm bg-green-100 text-green-800 font-medium">
+            <a href="{{ route('admin.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700">
                 Gestion utilisateurs
             </a>
 
@@ -44,7 +44,7 @@
 
         {{-- Topbar --}}
         <header class="h-14 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
-            <h1 class="text-lg font-semibold text-gray-800">Gestion des utilisateurs</h1>
+            <h1 class="text-lg font-semibold text-gray-800">Ajouter un utilisateur</h1>
             <div class="flex items-center gap-4">
                 <span class="text-xs text-gray-400">{{ now()->translatedFormat('l d F Y') }}</span>
                 <div class="flex items-center gap-2 bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-full">
@@ -56,118 +56,110 @@
         {{-- Content --}}
         <main class="flex-1 overflow-y-auto p-6">
 
-            {{-- Message flash --}}
-            @if(session('success'))
-            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                {{ session('success') }}
-            </div>
-            @endif
+            <div class="max-w-2xl mx-auto">
 
-            {{-- Stats --}}
-            <div class="grid grid-cols-4 gap-3 mb-6">
-                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center text-lg">👥</div>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $users->count() }}</p>
-                        <p class="text-xs text-gray-400">Utilisateurs total</p>
-                    </div>
-                </div>
-                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg">✅</div>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $users->where('active', true)->count() }}</p>
-                        <p class="text-xs text-gray-400">Comptes actifs</p>
-                    </div>
-                </div>
-                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">⛔</div>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $users->where('active', false)->count() }}</p>
-                        <p class="text-xs text-gray-400">Comptes inactifs</p>
-                    </div>
-                </div>
-                <div class="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center text-lg">🛡️</div>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-800">{{ $users->where('role', 'admin')->count() }}</p>
-                        <p class="text-xs text-gray-400">Admins</p>
-                    </div>
-                </div>
-            </div>
+                <a href="{{ route('admin.index') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                    Retour à la liste
+                </a>
 
-            {{-- Table --}}
-            <div class="bg-white border border-gray-200 rounded-xl p-5">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm font-semibold text-gray-800">Liste des utilisateurs</h2>
-                    <a href="{{ route('admin.create') }}" class="bg-green-700 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-green-800 transition">
-                        + Ajouter un utilisateur
-                    </a>
+                @if($errors->any())
+                <div class="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                    <ul class="list-disc list-inside space-y-1">
+                        @foreach($errors->all() as $erreur)
+                        <li>{{ $erreur }}</li>
+                        @endforeach
+                    </ul>
                 </div>
+                @endif
 
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b border-gray-200">
-                            <th class="pb-3 text-xs font-medium text-gray-400">Nom complet</th>
-                            <th class="pb-3 text-xs font-medium text-gray-400">Email</th>
-                            <th class="pb-3 text-xs font-medium text-gray-400">Rôle</th>
-                            <th class="pb-3 text-xs font-medium text-gray-400">Statut</th>
-                            <th class="pb-3 text-xs font-medium text-gray-400">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($users as $user)
-                        @php
-                            $roleColors = [
-                                'admin'        => 'bg-green-100 text-green-700',
-                                'responsable'  => 'bg-blue-100 text-blue-700',
-                                'mentor'       => 'bg-amber-100 text-amber-700',
-                                'invite'       => 'bg-purple-100 text-purple-700',
-                            ];
-                        @endphp
-                        <tr class="border-b border-gray-100 hover:bg-gray-50">
-                            <td class="py-3 text-sm text-gray-800">{{ $user->nom }} {{ $user->prenom }}</td>
-                            <td class="py-3 text-sm text-gray-500">{{ $user->email }}</td>
-                            <td class="py-3">
-                                <span class="text-xs font-medium px-2.5 py-1 rounded-full {{ $roleColors[$user->role] ?? 'bg-gray-100 text-gray-600' }}">
-                                    {{ $user->role }}
-                                </span>
-                            </td>
-                            <td class="py-3 text-sm text-gray-600">
-                                <span class="inline-block w-2 h-2 rounded-full mr-1.5 {{ $user->active ? 'bg-green-500' : 'bg-gray-400' }}"></span>
-                                {{ $user->active ? 'Actif' : 'Inactif' }}
-                            </td>
-                            <td class="py-3">
-                                <div class="flex gap-2">
-                                    {{-- Activer / Désactiver --}}
-                                    <form action="{{ route('admin.toggle', $user) }}" method="POST">
-                                        @csrf @method('PATCH')
-                                        <button type="submit"
-                                            class="text-xs border border-gray-200 rounded-md px-3 py-1.5 text-gray-500
-                                                   hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 transition">
-                                            {{ $user->active ? 'Désactiver' : 'Activer' }}
-                                        </button>
-                                    </form>
+                <form method="POST" action="{{ route('admin.store') }}" class="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
+                    @csrf
 
-                                    {{-- Supprimer --}}
-                                    <form action="{{ route('admin.destroy', $user) }}" method="POST">
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                            onclick="return confirm('Confirmer la suppression de {{ $user->nom }} ?')"
-                                            class="text-xs border border-gray-200 rounded-md px-3 py-1.5 text-gray-500
-                                                   hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">
-                                            Supprimer
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="py-8 text-center text-sm text-gray-400">Aucun utilisateur trouvé.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Nom</label>
+                            <input type="text" name="nom" value="{{ old('nom') }}" required
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Prénom</label>
+                            <input type="text" name="prenom" value="{{ old('prenom') }}" required
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                            <input type="email" name="email" value="{{ old('email') }}" required
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Téléphone</label>
+                            <input type="text" name="telephone" value="{{ old('telephone') }}"
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Mot de passe</label>
+                            <input type="password" name="password" required
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Confirmer le mot de passe</label>
+                            <input type="password" name="password_confirmation" required
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Rôle</label>
+                            <select name="role" required
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none bg-white">
+                                <option value="">-- Choisir --</option>
+                                <option value="administrateur" {{ old('role') == 'administrateur' ? 'selected' : '' }}>Administrateur</option>
+                                <option value="responsable" {{ old('role') == 'responsable' ? 'selected' : '' }}>Responsable</option>
+                                <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>Staff</option>
+                                <option value="coach" {{ old('role') == 'coach' ? 'selected' : '' }}>Coach</option>
+                                <option value="stagiaire" {{ old('role') == 'stagiaire' ? 'selected' : '' }}>Stagiaire</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Poste</label>
+                            <input type="text" name="poste" value="{{ old('poste') }}"
+                                class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-green-600 focus:border-green-600">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4 space-y-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="peut_approuver_tdr" value="1" {{ old('peut_approuver_tdr') ? 'checked' : '' }}
+                                class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                            <span class="text-sm text-gray-700">Peut approuver les TDR (Termes De Référence)</span>
+                        </label>
+
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="active" value="1" {{ old('active', true) ? 'checked' : '' }}
+                                class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                            <span class="text-sm text-gray-700">Compte actif</span>
+                        </label>
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="submit" class="bg-green-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-green-800 transition">
+                            Créer l'utilisateur
+                        </button>
+                        <a href="{{ route('admin.index') }}" class="border border-gray-200 text-sm text-gray-600 px-5 py-2.5 rounded-lg hover:bg-gray-50 transition">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
             </div>
 
         </main>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'Startup-Valley') }} — Fondation UAC</title>
+    <title>{{ config('app.name', 'Startup-Valley') }}  Fondation UAC</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=baloo-2:600,700,800|inter:400,500,600|ibm-plex-mono:500&display=swap" rel="stylesheet" />
@@ -373,9 +373,9 @@
 
                 <div class="wv-content">
                     <p class="wv-brand">Startup‑Valley</p>
-                    <h1>Votre espace de coordination — Fondation UAC</h1>
+                    <h1>Votre espace de coordination Fondation UAC</h1>
                     <p class="wv-sub">
-                        Planifiez les activités, suivez les échéances et ne manquez plus un message —
+                        Planifiez les activités, suivez les échéances et ne manquez plus un message 
                         Gmail, WhatsApp, Messenger et Facebook réunis dans un seul espace.
                     </p>
                     <div class="wv-cta-row">
@@ -386,7 +386,7 @@
                             </svg>
                         </button>
                     </div>
-                    <p class="wv-caption">Accès réservé — les comptes sont créés par l'administration de la Fondation.</p>
+                    <p class="wv-caption">Accès réservé  les comptes sont créés par l'administration de la Fondation.</p>
                 </div>
             </div>
         </main>
@@ -397,7 +397,7 @@
          style="backdrop-filter: blur(2px); padding-top: 60px;"
          onclick="if(event.target === this) closeLoginModal()">
         <div id="login-modal-card"
-             class="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-4 relative"
+             class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative"
              style="transform: scale(0.95) translateY(-8px); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease;">
 
             <button type="button" onclick="closeLoginModal()"

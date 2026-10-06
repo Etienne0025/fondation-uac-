@@ -79,7 +79,7 @@
                     </div>
 
                     {{-- Ligne 3 : Rôle et Poste --}}
-                    <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
 
@@ -105,6 +105,18 @@
                                 class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-600 focus:border-green-600 outline-none text-sm"
                                 placeholder="Ex : Chargé de programme">
                         </div>
+                    </div>
+
+                    {{-- Permission TDR --}}
+                    <div class="mb-6 border-t border-gray-100 pt-4">
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input type="checkbox" name="peut_approuver_tdr" value="1" {{ old('peut_approuver_tdr') ? 'checked' : '' }}
+                                class="mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                            <span class="text-sm text-gray-700">
+                                Peut approuver les TDR
+                                <span class="block text-xs text-gray-400 mt-0.5">Autorise cet utilisateur à approuver les Termes De Référence publiés sur la plateforme.</span>
+                            </span>
+                        </label>
                     </div>
 
                     {{-- Boutons --}}

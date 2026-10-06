@@ -33,6 +33,9 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+        Route::get('forgot-password/envoye', function () {
+    return view('auth.forgot-password-sent');
+})->name('password.sent');
 });
 
 Route::middleware('auth')->group(function () {

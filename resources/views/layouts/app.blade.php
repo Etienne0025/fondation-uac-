@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="user-id" content="{{ auth()->id() }}">
         <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
@@ -13,6 +13,17 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
+        <!-- PWA -->
+        <link rel="manifest" href="/manifest.json">
+        <meta name="theme-color" content="#15803d">
+        <link rel="icon" type="image/png" sizes="192x192" href="/image/icon-192.png">
+
+        <!-- iOS (Safari ne lit pas le manifest.json pour l'installation) -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="FUAC Agenda">
+        <link rel="apple-touch-icon" href="/image/icon-192.png">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -22,6 +33,7 @@
     </head>
 
     <body class="font-sans antialiased">
+         <x-toast />
         <div class="min-h-screen bg-gray-100">
 
             {{-- Barre mobile avec bouton hamburger pour ouvrir le tiroir de la sidebar.
@@ -49,5 +61,53 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <style>
+            .btn-loading { opacity: .75; cursor: not-allowed; pointer-events: none; }
+        </style>
+
+        <script>
+        document.addEventListener('submit', function (e) {
+            const form = e.target;
+            if (form.hasAttribute('data-no-loading')) return;
+
+            // On attend la fin des autres écouteurs (ex : confirm()) pour vérifier que l'envoi a bien lieu
+            setTimeout(() => {
+                if (e.defaultPrevented) return;
+
+                form.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]').forEach(btn => {
+                    if (btn.dataset.loading) return;
+                    btn.dataset.loading = '1';
+                    btn.classList.add('btn-loading');
+                    btn.setAttribute('aria-busy', 'true');
+
+                    if (btn.tagName === 'BUTTON') {
+                        btn.dataset.originalHtml = btn.innerHTML;
+                        btn.innerHTML =
+                            '<span class="inline-flex items-center gap-2">' +
+                            '<svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">' +
+                            '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+                            '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>' +
+                            '</svg>Chargement…</span>';
+                    } else {
+                        btn.dataset.originalValue = btn.value;
+                        btn.value = 'Chargement…';
+                    }
+                });
+            }, 0);
+        });
+
+        // Réinitialise les boutons si l'utilisateur revient en arrière (cache du navigateur)
+        window.addEventListener('pageshow', function (e) {
+            if (!e.persisted) return;
+            document.querySelectorAll('[data-loading]').forEach(btn => {
+                btn.classList.remove('btn-loading');
+                btn.removeAttribute('aria-busy');
+                if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+                if (btn.dataset.originalValue) btn.value = btn.dataset.originalValue;
+                delete btn.dataset.loading;
+            });
+        });
+        </script>
     </body>
 </html>

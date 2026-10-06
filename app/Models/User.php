@@ -21,7 +21,7 @@ class User extends Authenticatable
      * @var list<string>
      */
 
-    protected $fillable = [
+   protected $fillable = [
     'nom',
     'prenom',
     'telephone',
@@ -32,6 +32,7 @@ class User extends Authenticatable
     'active',
     'google_id',
     'avatar',
+    'peut_approuver_tdr', 
 ];
 
     /**

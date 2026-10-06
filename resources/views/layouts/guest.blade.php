@@ -11,6 +11,7 @@
 
     </head>
     <body class="font-sans text-gray-900 antialiased">
+         <x-toast />
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
 
             {{-- Logo affiché au-dessus de la card --}}
@@ -22,5 +23,52 @@
                 {{ $slot }}
             </div>
         </div>
+        <style>
+    .btn-loading { opacity: .75; cursor: not-allowed; pointer-events: none; }
+</style>
+
+<script>
+document.addEventListener('submit', function (e) {
+    const form = e.target;
+    if (form.hasAttribute('data-no-loading')) return;
+
+    // On attend la fin des autres écouteurs (ex : confirm()) pour vérifier que l'envoi a bien lieu
+    setTimeout(() => {
+        if (e.defaultPrevented) return;
+
+        form.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]').forEach(btn => {
+            if (btn.dataset.loading) return;
+            btn.dataset.loading = '1';
+            btn.classList.add('btn-loading');
+            btn.setAttribute('aria-busy', 'true');
+
+            if (btn.tagName === 'BUTTON') {
+                btn.dataset.originalHtml = btn.innerHTML;
+                btn.innerHTML =
+                    '<span class="inline-flex items-center gap-2">' +
+                    '<svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">' +
+                    '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+                    '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>' +
+                    '</svg>Chargement…</span>';
+            } else {
+                btn.dataset.originalValue = btn.value;
+                btn.value = 'Chargement…';
+            }
+        });
+    }, 0);
+});
+
+// Réinitialise les boutons si l'utilisateur revient en arrière (cache du navigateur)
+window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    document.querySelectorAll('[data-loading]').forEach(btn => {
+        btn.classList.remove('btn-loading');
+        btn.removeAttribute('aria-busy');
+        if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+        if (btn.dataset.originalValue) btn.value = btn.dataset.originalValue;
+        delete btn.dataset.loading;
+    });
+});
+</script>
     </body>
 </html>

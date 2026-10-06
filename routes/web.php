@@ -59,6 +59,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/notifications/{notification}/lire', [AdminController::class, 'marquerLue'])  ->name('notifications.lire');
     Route::post('/notifications/lire-tout',     [AdminController::class, 'marquerToutesLues'])->name('notifications.lire.tout');
     Route::delete('/notifications/supprimer', [AdminController::class, 'supprimerNotifications'])->name('notifications.supprimer');
+    Route::patch('/admin/{user}/toggle', [AdminController::class, 'toggleStatus'])->name('admin.toggle');
+
+    Route::patch('/admin/{user}/toggle-approbation-tdr', [AdminController::class, 'toggleApprobationTdr'])->name('admin.toggle-approbation-tdr');
 });
 // ===== Routes Responsable =====
 Route::middleware(['auth'])->prefix('responsable')->name('responsable.')->group(function () {
@@ -182,5 +185,18 @@ Route::middleware(['auth'])->group(function () {
     })->name('push.unsubscribe');
 });
 
-Route::post('/notifications/{notification}/arreter', [NotificationRappelController::class, 'arreter'])->name('notifications.arreter');
-Route::post('/notifications/{notification}/rappeler', [NotificationRappelController::class, 'relancer'])->name('notifications.relancer');
+
+use App\Http\Controllers\TdrController;
+
+Route::middleware('auth')->group(function () {
+    Route::get('/tdr', [TdrController::class, 'index'])->name('tdr.index');
+    Route::get('/tdr/creer', [TdrController::class, 'create'])->name('tdr.create');
+    Route::post('/tdr', [TdrController::class, 'store'])->name('tdr.store');
+    Route::get('/tdr/{tdr}', [TdrController::class, 'show'])->name('tdr.show');
+    Route::post('/tdr/{tdr}/fichier', [TdrController::class, 'soumettreFichier'])->name('tdr.fichier');
+    Route::post('/tdr/{tdr}/avis', [TdrController::class, 'storeAvis'])->name('tdr.avis');
+    Route::patch('/tdr/{tdr}/approuver', [TdrController::class, 'approuver'])->name('tdr.approuver');
+    Route::get('/tdr/{tdr}/edit', [TdrController::class, 'edit'])->name('tdr.edit');
+Route::patch('/tdr/{tdr}', [TdrController::class, 'update'])->name('tdr.update');
+Route::delete('/tdr/{tdr}', [TdrController::class, 'destroy'])->name('tdr.destroy');
+});
