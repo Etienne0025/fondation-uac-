@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 
 class FacebookWebhookController extends Controller
 {
+
+
     public function verifier(Request $request)
     {
         $challenge   = $request->query('hub_challenge');

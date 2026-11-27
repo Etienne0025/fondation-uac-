@@ -1,7 +1,11 @@
 <x-app-layout>
 <div class="flex h-screen bg-gray-100">
 
-    <x-sidebar-responsable />
+     @if(auth()->user()->role === 'administrateur')
+        <x-sidebar-admin />
+    @else
+        <x-sidebar-responsable />
+    @endif
 
     <div class="flex-1 flex flex-col overflow-hidden">
         <header class="h-14 bg-white border-b border-gray-200 px-6 flex items-center justify-between">

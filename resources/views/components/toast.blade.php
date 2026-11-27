@@ -1,7 +1,14 @@
 @php
+    $statut = session('status');
+
     $messages = collect([
         'success' => session('success'),
-        'status'  => session('status'),
+        'status'  => match($statut) {
+            'profile-updated'        => 'Profil mis à jour.',
+            'password-updated'       => 'Mot de passe mis à jour.',
+            'verification-link-sent' => 'Un nouveau lien de vérification a été envoyé à votre adresse e-mail.',
+            default                  => $statut,
+        },
         'warning' => session('warning'),
         'error'   => session('error'),
     ])->filter();

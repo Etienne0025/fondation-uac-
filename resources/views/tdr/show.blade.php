@@ -20,17 +20,7 @@
 
         <main class="flex-1 overflow-y-auto p-3 sm:p-6">
 
-            @if(session('success'))
-            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                {{ session('success') }}
-            </div>
-            @endif
 
-            @if(session('warning'))
-            <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-lg">
-                {{ session('warning') }}
-            </div>
-            @endif
 
             <a href="{{ route('tdr.index') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">

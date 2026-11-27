@@ -2,29 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Projet;
-use App\Models\Tdr;
-use App\Models\TdrAvis;
-use App\Models\User;
-use App\Notifications\TdrPublieNotification;
-use App\Notifications\TdrAvisNotification;
-use App\Notifications\TdrApprouveNotification;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Mail;
 use App\Mail\TdrPublieMail;
 use App\Mail\TdrValidationDemandeeMail;
+use App\Models\Projet;
+use App\Models\Tdr;
+use App\Models\User;
+use App\Notifications\TdrApprouveNotification;
+use App\Notifications\TdrAvisNotification;
+use App\Notifications\TdrPublieNotification;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class TdrController extends Controller
 {
+    private const ROLES_STAFF   = ['administrateur', 'responsable'];
+    private const DISQUE_PRIVE  = 'local'; // non accessible directement depuis le web
+
     public function index(Request $request)
     {
-        abort_unless(in_array(auth()->user()->role, ['administrateur', 'responsable']), 403);
+        $this->autoriserStaff();
+
+        $request->validate([
+            'q'          => ['nullable', 'string', 'max:100'],
+            'user_id'    => ['nullable', 'integer'],
+            'date_debut' => ['nullable', 'date'],
+            'date_fin'   => ['nullable', 'date'],
+        ]);
 
         $query = Tdr::with(['projet', 'user', 'approbations', 'avis']);
 
         if ($request->filled('q')) {
-            $query->where('titre', 'like', '%' . $request->q . '%');
+            // On échappe % et _ pour qu'ils soient traités comme du texte
+            $recherche = addcslashes($request->q, '%_\\');
+            $query->where('titre', 'like', '%' . $recherche . '%');
         }
 
         if ($request->filled('user_id')) {
@@ -51,12 +64,12 @@ class TdrController extends Controller
 
     public function create()
     {
-        abort_unless(in_array(auth()->user()->role, ['administrateur', 'responsable']), 403);
+        $this->autoriserStaff();
 
         $projets = Projet::where('user_id', auth()->id())->orWhereDoesntHave('tdrs')->get();
 
         // Seuls administrateur et responsable peuvent être désignés supérieur hiérarchique
-        $utilisateurs = User::whereIn('role', ['administrateur', 'responsable'])
+        $utilisateurs = User::whereIn('role', self::ROLES_STAFF)
             ->where('id', '!=', auth()->id())
             ->orderBy('nom')
             ->get();
@@ -64,26 +77,40 @@ class TdrController extends Controller
         return view('tdr.create', compact('projets', 'utilisateurs'));
     }
 
-    // Seuls administrateur et responsable publient le theme, avec ou sans fichier joint immediatement
+    // Seuls administrateur et responsable publient le thème, avec ou sans fichier joint
     public function store(Request $request)
     {
-        abort_unless(in_array(auth()->user()->role, ['administrateur', 'responsable']), 403);
+        $this->autoriserStaff();
 
         $request->validate([
-            'projet_id'      => ['nullable', 'exists:projets,id'],
-            'nouveau_projet' => ['required_without:projet_id', 'string', 'max:255'],
+            'projet_id'      => ['nullable', 'integer', 'exists:projets,id'],
+            'nouveau_projet' => ['required_without:projet_id', 'nullable', 'string', 'max:255'],
             'titre'          => ['required', 'string', 'max:255'],
             'description'    => ['nullable', 'string'],
             'fichier'        => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
-            'superieur_id'   => ['required', 'exists:users,id', 'different:' . auth()->id()],
+            'superieur_id'   => [
+                'required',
+                // Le supérieur doit exister ET être administrateur ou responsable
+                Rule::exists('users', 'id')->whereIn('role', self::ROLES_STAFF),
+                // (remplace 'different:' . id, qui attend un nom de champ et non une valeur)
+                Rule::notIn([auth()->id()]),
+            ],
         ]);
 
-        $projet = $request->projet_id
-            ? Projet::findOrFail($request->projet_id)
-            : Projet::create([
+        if ($request->projet_id) {
+            // Même règle que dans create() : projet à soi, ou projet sans TDR
+            $projet = Projet::where('id', $request->projet_id)
+                ->where(function ($q) {
+                    $q->where('user_id', auth()->id())
+                      ->orWhereDoesntHave('tdrs');
+                })
+                ->firstOrFail();
+        } else {
+            $projet = Projet::create([
                 'titre'   => $request->nouveau_projet,
                 'user_id' => auth()->id(),
             ]);
+        }
 
         $donneesTdr = [
             'projet_id'    => $projet->id,
@@ -95,76 +122,69 @@ class TdrController extends Controller
 
         if ($request->hasFile('fichier')) {
             $fichier = $request->file('fichier');
-            $donneesTdr['fichier_nom']      = $fichier->getClientOriginalName();
-            $donneesTdr['fichier_chemin']   = $fichier->store('tdrs', 'public');
-            $donneesTdr['fichier_type']     = $fichier->getClientOriginalExtension();
+            $donneesTdr['fichier_nom']      = basename($fichier->getClientOriginalName());
+            $donneesTdr['fichier_chemin']   = $fichier->store('tdrs', self::DISQUE_PRIVE);
+            $donneesTdr['fichier_type']     = $fichier->extension(); // déduit du contenu, pas du client
             $donneesTdr['soumis_par_id']    = auth()->id();
             $donneesTdr['fichier_soumis_a'] = now();
         }
 
         $tdr = Tdr::create($donneesTdr);
 
-        // Notification push a tout le staff (administrateur + responsable), hors createur
-        $staff = User::whereIn('role', ['administrateur', 'responsable'])
-            ->where('id', '!=', auth()->id())
-            ->get();
-
-        foreach ($staff as $membre) {
-            $membre->notify(new TdrPublieNotification($tdr));
-        }
-
-        // Email a tout le staff, et email specifique aux personnes appelees a valider
-        // (le superieur designe + les membres ayant la permission globale, sans doublon)
-        try {
-            $tousLesStaff = User::whereIn('role', ['administrateur', 'responsable'])->get();
-            foreach ($tousLesStaff as $membre) {
-                Mail::to($membre->email)->send(new TdrPublieMail($tdr));
-            }
-
-            $destinatairesValidation = User::where('peut_approuver_tdr', true)
-                ->orWhere('id', $tdr->superieur_id)
-                ->get()
-                ->unique('id');
-
-            foreach ($destinatairesValidation as $destinataire) {
-                Mail::to($destinataire->email)->send(new TdrValidationDemandeeMail($tdr));
-            }
-        } catch (\Exception $e) {
-            \Log::error("Échec d'envoi des emails de publication TDR #{$tdr->id} : " . $e->getMessage());
-        }
+        $this->notifierPublication($tdr);
 
         return redirect()->route('tdr.show', $tdr)->with('success', 'TDR publié avec succès.');
     }
 
     public function show(Tdr $tdr)
     {
-        abort_unless(in_array(auth()->user()->role, ['administrateur', 'responsable']), 403);
+        $this->autoriserStaff();
 
         $tdr->load(['projet', 'user', 'soumisPar', 'superieur', 'avis.user', 'approbations.user']);
 
         return view('tdr.show', compact('tdr'));
     }
 
-    // Ajouter ou remplacer le fichier apres la publication initiale
+    // Téléchargement protégé du fichier (remplace l'accès direct au dossier public)
+    public function telecharger(Tdr $tdr)
+    {
+        $this->autoriserStaff();
+
+        abort_unless($tdr->fichier_chemin, 404);
+
+        // 'public' = anciens fichiers déjà envoyés avant cette correction
+        foreach ([self::DISQUE_PRIVE, 'public'] as $disque) {
+            if (Storage::disk($disque)->exists($tdr->fichier_chemin)) {
+                return Storage::disk($disque)->download(
+                    $tdr->fichier_chemin,
+                    basename($tdr->fichier_nom ?? 'tdr')
+                );
+            }
+        }
+
+        abort(404);
+    }
+
+    // Ajouter ou remplacer le fichier après la publication initiale
     public function soumettreFichier(Request $request, Tdr $tdr)
     {
+        $this->autoriserStaff();
         abort_unless($tdr->user_id === auth()->id(), 403, 'Seul le créateur de ce TDR peut modifier son fichier.');
+        abort_if($tdr->nombreApprobations() > 0, 403, 'Ce TDR a déjà été approuvé, son fichier ne peut plus être modifié.');
 
         $request->validate([
             'fichier' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
         ]);
 
-        if ($tdr->fichier_chemin) {
-            Storage::disk('public')->delete($tdr->fichier_chemin);
-        }
+        $this->supprimerFichier($tdr);
 
         $fichier = $request->file('fichier');
-        $chemin  = $fichier->store('tdrs', 'public');
+        $chemin  = $fichier->store('tdrs', self::DISQUE_PRIVE);
 
         $tdr->update([
-            'fichier_nom'      => $fichier->getClientOriginalName(),
+            'fichier_nom'      => basename($fichier->getClientOriginalName()),
             'fichier_chemin'   => $chemin,
-            'fichier_type'     => $fichier->getClientOriginalExtension(),
+            'fichier_type'     => $fichier->extension(),
             'soumis_par_id'    => auth()->id(),
             'fichier_soumis_a' => now(),
         ]);
@@ -174,7 +194,7 @@ class TdrController extends Controller
 
     public function storeAvis(Request $request, Tdr $tdr)
     {
-        abort_unless(in_array(auth()->user()->role, ['administrateur', 'responsable']), 403);
+        $this->autoriserStaff();
 
         $request->validate([
             'message' => ['required', 'string', 'max:2000'],
@@ -195,8 +215,8 @@ class TdrController extends Controller
 
     public function approuver(Tdr $tdr)
     {
-        // Le superieur designe peut approuver meme sans la permission globale peut_approuver_tdr,
-        // et les autres membres habilites ne peuvent le faire qu'une fois le superieur passe.
+        // Le supérieur désigné peut approuver même sans la permission globale peut_approuver_tdr,
+        // et les autres membres habilités ne peuvent le faire qu'une fois le supérieur passé.
         abort_unless($tdr->peutEtreApprouvePar(auth()->user()), 403);
 
         if ($tdr->estApprouvePar(auth()->user())) {
@@ -219,7 +239,7 @@ class TdrController extends Controller
         abort_unless($tdr->user_id === auth()->id(), 403, 'Seul le créateur de ce TDR peut le modifier.');
         abort_if($tdr->nombreApprobations() > 0, 403, 'Ce TDR a déjà été approuvé, il ne peut plus être modifié.');
 
-        $utilisateurs = User::whereIn('role', ['administrateur', 'responsable'])
+        $utilisateurs = User::whereIn('role', self::ROLES_STAFF)
             ->where('id', '!=', auth()->id())
             ->orderBy('nom')
             ->get();
@@ -235,7 +255,11 @@ class TdrController extends Controller
         $request->validate([
             'titre'        => ['required', 'string', 'max:255'],
             'description'  => ['nullable', 'string'],
-            'superieur_id' => ['required', 'exists:users,id', 'different:' . auth()->id()],
+            'superieur_id' => [
+                'required',
+                Rule::exists('users', 'id')->whereIn('role', self::ROLES_STAFF),
+                Rule::notIn([auth()->id()]),
+            ],
         ]);
 
         $tdr->update([
@@ -252,12 +276,64 @@ class TdrController extends Controller
         abort_unless($tdr->user_id === auth()->id(), 403, 'Seul le créateur de ce TDR peut le supprimer.');
         abort_if($tdr->nombreApprobations() > 0, 403, 'Ce TDR a déjà été approuvé, il ne peut plus être supprimé.');
 
-        if ($tdr->fichier_chemin) {
-            Storage::disk('public')->delete($tdr->fichier_chemin);
-        }
+        $this->supprimerFichier($tdr);
 
         $tdr->delete();
 
         return redirect()->route('tdr.index')->with('success', 'TDR supprimé.');
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Méthodes privées                                                   */
+    /* ------------------------------------------------------------------ */
+
+    private function autoriserStaff(): void
+    {
+        abort_unless(in_array(auth()->user()->role, self::ROLES_STAFF, true), 403);
+    }
+
+    private function supprimerFichier(Tdr $tdr): void
+    {
+        if ($tdr->fichier_chemin) {
+            Storage::disk(self::DISQUE_PRIVE)->delete($tdr->fichier_chemin);
+            Storage::disk('public')->delete($tdr->fichier_chemin); // anciens fichiers
+        }
+    }
+
+    /**
+     * Notifications push + emails. Chaque bloc est isolé : une panne d'envoi
+     * ne doit jamais faire échouer la publication du TDR (déjà enregistré).
+     */
+    private function notifierPublication(Tdr $tdr): void
+    {
+        try {
+            $staff = User::whereIn('role', self::ROLES_STAFF)
+                ->where('id', '!=', auth()->id())
+                ->get();
+
+            foreach ($staff as $membre) {
+                $membre->notify(new TdrPublieNotification($tdr));
+            }
+        } catch (\Throwable $e) {
+            Log::error("Échec des notifications push TDR #{$tdr->id} : " . $e->getMessage());
+        }
+
+        try {
+            $tousLesStaff = User::whereIn('role', self::ROLES_STAFF)->get();
+            foreach ($tousLesStaff as $membre) {
+                Mail::to($membre->email)->send(new TdrPublieMail($tdr));
+            }
+
+            $destinatairesValidation = User::where('peut_approuver_tdr', true)
+                ->orWhere('id', $tdr->superieur_id)
+                ->get()
+                ->unique('id');
+
+            foreach ($destinatairesValidation as $destinataire) {
+                Mail::to($destinataire->email)->send(new TdrValidationDemandeeMail($tdr));
+            }
+        } catch (\Throwable $e) {
+            Log::error("Échec d'envoi des emails de publication TDR #{$tdr->id} : " . $e->getMessage());
+        }
     }
 }

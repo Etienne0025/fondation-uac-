@@ -15,7 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ['middleware' => ['web', 'auth']],
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->validateCsrfTokens(except: [
+       
+    $middleware->alias([
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
+    ]);
+    
+    $middleware->validateCsrfTokens(except: [
             'webhook/facebook',
             'webhook/whatsapp',
         ]);

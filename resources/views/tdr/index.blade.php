@@ -20,11 +20,6 @@
 
         <main class="flex-1 md:overflow-y-auto p-4 md:p-6">
 
-            @if(session('success'))
-            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                {{ session('success') }}
-            </div>
-            @endif
 
             {{-- Filtres --}}
             <form method="GET" action="{{ route('tdr.index') }}"

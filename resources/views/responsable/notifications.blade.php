@@ -1,7 +1,11 @@
 <x-app-layout>
 <div class="flex h-screen bg-gray-100">
 
-    <x-sidebar-responsable />
+    @if(auth()->user()->role === 'administrateur')
+        <x-sidebar-admin />
+    @else
+        <x-sidebar-responsable />
+    @endif
 
     <div class="flex-1 flex flex-col overflow-hidden">
         <header class="h-auto sm:h-14 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
@@ -19,11 +23,6 @@
 
         <main class="flex-1 overflow-y-auto p-3 sm:p-6">
 
-            @if(session('success'))
-            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                {{ session('success') }}
-            </div>
-            @endif
 
             {{-- Stats --}}
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">

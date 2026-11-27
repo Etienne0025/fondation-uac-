@@ -1,7 +1,11 @@
 <x-app-layout>
 <div class="flex h-screen bg-gray-100">
 
-    <x-sidebar-responsable />
+    @if(auth()->user()->role === 'administrateur')
+        <x-sidebar-admin />
+    @else
+        <x-sidebar-responsable />
+    @endif
 
     <div class="flex-1 flex flex-col overflow-hidden">
 
@@ -21,11 +25,6 @@
                 $prefixe = auth()->user()->role === 'Administrateur' ? 'admin.activites' : 'responsable';
             @endphp
 
-            @if(session('success'))
-            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                {{ session('success') }}
-            </div>
-            @endif
 
             {{-- Stats --}}
             <div class="grid grid-cols-2 gap-3 mb-4">

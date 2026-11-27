@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class BaseActiviteController extends Controller
 {
-    // Vue de base — surchargée d
+    // Préfixe des vues, surchargeable dans les contrôleurs enfants
     protected string $viewPrefix = 'activites';
 
     public function index(Request $request)
@@ -185,7 +185,10 @@ class BaseActiviteController extends Controller
 
     public function edit(Activite $activite)
     {
-        abort_if($activite->user_id !== auth()->id(), 403);
+        abort_if(
+            $activite->user_id !== auth()->id() && auth()->user()->role !== 'administrateur',
+            403
+        );
 
         $utilisateurs = User::where('active', true)
             ->where('id', '!=', auth()->id())
@@ -199,7 +202,10 @@ class BaseActiviteController extends Controller
 
     public function update(Request $request, Activite $activite)
     {
-        abort_if($activite->user_id !== auth()->id(), 403);
+        abort_if(
+            $activite->user_id !== auth()->id() && auth()->user()->role !== 'administrateur',
+            403
+        );
 
         $request->validate([
             'titre'                       => ['required', 'string', 'max:255'],
@@ -302,7 +308,10 @@ class BaseActiviteController extends Controller
 
     public function destroy(Activite $activite)
     {
-        abort_if($activite->user_id !== auth()->id(), 403);
+        abort_if(
+            $activite->user_id !== auth()->id() && auth()->user()->role !== 'administrateur',
+            403
+        );
         $activite->delete();
         return back()->with('success', 'Activité supprimée.');
     }
@@ -361,6 +370,16 @@ class BaseActiviteController extends Controller
 
     public function marquerLue(Notification $notification)
     {
+        $activite = $notification->activite;
+
+        // Seul le propriétaire de l'activité, ou tout le monde si elle est publique
+        // (cohérent avec la liste affichée dans notifications()).
+        abort_if(
+            ! $activite
+            || ($activite->user_id !== auth()->id() && $activite->acces?->droitacces !== 'public'),
+            403
+        );
+
         $notification->update(['vue' => true]);
         return back()->with('success', 'Notification marquée comme lue.');
     }
@@ -435,7 +454,11 @@ class BaseActiviteController extends Controller
     // Retourne le préfixe de route selon le rôle
     protected function routePrefix(): string
     {
-        return auth()->user()->role === 'administrateur' ? 'admin.activites' : 'responsable';
+        return match (auth()->user()->role) {
+            'administrateur' => 'admin.activites',
+            'responsable'    => 'responsable',
+            default          => 'activites',
+        };
     }
 
     protected function calculerDate(\Carbon\Carbon $base, int $valeur, string $unite, string $sens): \Carbon\Carbon

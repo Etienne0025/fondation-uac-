@@ -20,14 +20,6 @@
 
         <main class="flex-1 overflow-y-auto p-3 sm:p-6">
 
-            @if(session('success'))
-            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {{ session('success') }}
-            </div>
-            @endif
 
             @if($accesComplet)
             {{-- Filtre par categorie --}}
@@ -117,7 +109,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
                 </svg>
-                Faites défiler horizontalement pour voir tous les jours — touchez une case pour l'agrandir
+                Faites défiler horizontalement pour voir tous les jours  touchez une case pour l'agrandir
             </p>
 
             {{-- Tableau de planification --}}
@@ -194,7 +186,7 @@
                                             <p class="text-green-600">{{ \Carbon\Carbon::parse($activite->date)->format('H:i') }}</p>
                                         </div>
                                         @empty
-                                        <span class="text-xs text-gray-300 text-center block mt-2">—</span>
+                                        <span class="text-xs text-gray-300 text-center block mt-2">-</span>
                                         @endforelse
                                     </div>
                                     <div class="cellule-zoomable p-2 space-y-1 overflow-y-auto cursor-zoom-in hover:bg-gray-50/80 transition"
@@ -205,7 +197,7 @@
                                             <p class="text-amber-600">{{ \Carbon\Carbon::parse($activite->date)->format('H:i') }}</p>
                                         </div>
                                         @empty
-                                        <span class="text-xs text-gray-300 text-center block mt-2">—</span>
+                                        <span class="text-xs text-gray-300 text-center block mt-2">-</span>
                                         @endforelse
                                     </div>
                                 </div>

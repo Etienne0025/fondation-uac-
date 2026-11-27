@@ -4,11 +4,6 @@
     </div>
 
     {{-- Message de confirmation après l'envoi --}}
-    @if (session('status'))
-        <div class="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-            {{ session('status') }}
-        </div>
-    @endif
 
     {{-- Erreurs (adresse inconnue, trop de tentatives...) --}}
     @if ($errors->any())
